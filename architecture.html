@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOVA iOS — Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #09122A;
+      --surface:       rgba(255,255,255,0.038);
+      --surface-hi:    rgba(255,255,255,0.065);
+      --border:        rgba(56,112,189,0.32);
+      --border-hi:     rgba(56,112,189,0.65);
+      --text:          #D8E8FF;
+      --text-sec:      #6B8EB8;
+      --text-muted:    #3A5580;
+      --monolith:      #00D4AA;
+      --monolith-dim:  rgba(0,212,170,0.12);
+      --ios:           #F05138;
+      --ios-dim:       rgba(240,81,56,0.12);
+      --ai:            #A78BFA;
+      --ai-dim:        rgba(167,139,250,0.12);
+      --flow:          #FFD166;
+      --flow-dim:      rgba(255,209,102,0.15);
+      --mono:          'Space Mono', monospace;
+      --sans:          'Inter', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(28,67,120,0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(28,67,120,0.18) 1px, transparent 1px);
+      background-size: 48px 48px;
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    header {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 72px 40px 56px;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    h1 span.accent-ios   { color: var(--ios); }
+    h1 span.accent-mono  { color: var(--monolith); }
+
+    .header-sub {
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text-sec);
+      line-height: 1.6;
+      max-width: 560px;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 28px;
+    }
+
+    .meta-pill {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── SECTION WRAPPER ─────────────────────────────────────── */
+    .section {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── ARCHITECTURE DIAGRAM ────────────────────────────────── */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 180px 1fr;
+      gap: 0;
+      align-items: start;
+      margin-bottom: 64px;
+    }
+
+    /* ── REPO CARDS ──────────────────────────────────────────── */
+    .repo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .repo-card:hover {
+      border-color: var(--border-hi);
+      background: var(--surface-hi);
+    }
+
+    .repo-header {
+      padding: 20px 24px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .repo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .repo-name {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .repo-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+      font-family: var(--mono);
+    }
+
+    /* monolith card */
+    .card-monolith .repo-dot { background: var(--monolith); box-shadow: 0 0 8px var(--monolith); }
+    .card-monolith .repo-name { color: var(--monolith); }
+
+    /* ios card */
+    .card-ios .repo-dot { background: var(--ios); box-shadow: 0 0 8px var(--ios); }
+    .card-ios .repo-name { color: var(--ios); }
+
+    /* ── CARD LAYERS ─────────────────────────────────────────── */
+    .layer {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .layer:last-child { border-bottom: none; }
+
+    .layer-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .item-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .item {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 12.5px;
+    }
+
+    .item-icon {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      width: 16px;
+    }
+
+    .item-name {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text);
+    }
+
+    .item-note {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      padding: 2px 7px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .badge-mono  { background: var(--monolith-dim); color: var(--monolith); border: 1px solid rgba(0,212,170,0.25); }
+    .badge-ios   { background: var(--ios-dim);      color: var(--ios);      border: 1px solid rgba(240,81,56,0.25); }
+    .badge-ai    { background: var(--ai-dim);        color: var(--ai);       border: 1px solid rgba(167,139,250,0.25); }
+    .badge-flow  { background: var(--flow-dim);      color: var(--flow);     border: 1px solid rgba(255,209,102,0.25); }
+
+    /* ── CONNECTOR ───────────────────────────────────────────── */
+    .connector-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 72px;
+      position: relative;
+    }
+
+    .connector-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--flow);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .connector-svg {
+      width: 180px;
+      height: 48px;
+      overflow: visible;
+    }
+
+    .flow-line {
+      stroke: var(--flow);
+      stroke-width: 1.5;
+      stroke-dasharray: 6 5;
+      fill: none;
+      opacity: 0.5;
+    }
+
+    .flow-arrow {
+      fill: var(--flow);
+      opacity: 0.7;
+    }
+
+    /* Packet dots — spawned by JS */
+    .packet {
+      position: absolute;
+      width: 7px;
+      height: 7px;
+      background: var(--flow);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--flow), 0 0 20px rgba(255,209,102,0.4);
+      pointer-events: none;
+      top: 95px; /* aligned with connector centerline */
+      left: 0;
+      transform: translateY(-50%);
+    }
+
+    .connector-dest {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .connector-step {
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    /* ── SHARED API ──────────────────────────────────────────── */
+    .api-section {
+      margin-bottom: 64px;
+    }
+
+    .api-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .api-consumer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .api-consumer-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .consumer-monolith { color: var(--monolith); }
+    .consumer-ios      { color: var(--ios); }
+
+    .api-detail {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .api-detail-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .api-detail-key {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-sec);
+      min-width: 60px;
+    }
+
+    .api-detail-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .api-center {
+      text-align: center;
+    }
+
+    .api-core-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .api-core-name {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .api-core-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .api-arrow {
+      font-family: var(--mono);
+      font-size: 18px;
+      color: var(--border-hi);
+    }
+
+    .api-note {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--flow-dim);
+      border: 1px solid rgba(255,209,102,0.2);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--flow);
+      letter-spacing: 0.06em;
+      line-height: 1.6;
+    }
+
+    /* ── TRANSLATION TABLE ───────────────────────────────────── */
+    .translation-section {
+      margin-bottom: 64px;
+    }
+
+    .translation-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .trans-col-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .trans-col-header.web-header  { color: var(--monolith); background: var(--monolith-dim); border-right: 1px solid var(--border); }
+    .trans-col-header.ios-header  { color: var(--ios);      background: var(--ios-dim); }
+
+    .trans-row {
+      display: contents;
+    }
+
+    .trans-cell {
+      padding: 12px 20px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trans-cell:last-child,
+    .trans-cell:nth-last-child(2) { border-bottom: none; }
+
+    .trans-cell.web-cell {
+      color: var(--text-sec);
+      border-right: 1px solid var(--border);
+      background: rgba(0,212,170,0.03);
+    }
+
+    .trans-cell.ios-cell {
+      color: var(--text);
+      background: rgba(240,81,56,0.03);
+    }
+
+    .trans-cell .t-pattern { color: var(--text-muted); font-size: 10px; }
+    .trans-cell .t-value   { color: var(--text); }
+    .trans-cell .t-ios     { color: var(--ios); }
+
+    /* ── WORKFLOW ────────────────────────────────────────────── */
+    .workflow-section {
+      margin-bottom: 64px;
+    }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .step {
+      padding: 20px 16px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+
+    .step:last-child { border-right: none; }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .step-title {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .step-detail {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .step-badge {
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    /* step accent bars */
+    .step::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .step-validate::before   { background: var(--text-muted); }
+    .step-brainstorm::before { background: var(--ai); }
+    .step-plan::before       { background: var(--ai); }
+    .step-branch::before     { background: var(--text-sec); }
+    .step-implement::before  { background: var(--ios); }
+    .step-verify::before     { background: var(--monolith); }
+    .step-done::before       { background: var(--flow); }
+
+    /* ── FOOTER ──────────────────────────────────────────────── */
+    footer {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 32px 40px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-item {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .footer-item span { color: var(--text-sec); }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      header { padding: 48px 24px 40px; }
+      .section { padding: 0 24px; }
+
+      .arch-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .connector-wrap {
+        padding: 20px 0;
+        flex-direction: row;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .connector-svg { width: 120px; height: 32px; }
+      .packet { display: none; }
+
+      .api-card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .api-arrow { transform: rotate(90deg); text-align: center; }
+
+      .workflow-steps {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .step:nth-child(4) { border-right: none; }
+      .step:nth-child(5), .step:nth-child(6), .step:nth-child(7) {
+        border-top: 1px solid var(--border);
+      }
+      .step:nth-child(7) { border-right: none; }
+
+      .translation-grid { grid-template-columns: 1fr; }
+      .trans-col-header.web-header { border-right: none; }
+      .trans-cell.web-cell { border-right: none; border-bottom: 1px solid var(--border); }
+
+      footer { flex-direction: column; gap: 16px; align-items: flex-start; }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 24px; }
+      .workflow-steps { grid-template-columns: 1fr 1fr; }
+      .step:nth-child(odd) { border-right: 1px solid var(--border); }
+      .step:nth-child(even) { border-right: none; }
+      .step:nth-child(n+3) { border-top: 1px solid var(--border); }
+      .header-meta { flex-wrap: wrap; gap: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .packet { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ──────────────────────────────────────────────── -->
+  <header>
+    <div class="eyebrow">GOVA TRIFECTA &nbsp;/&nbsp; iOS TEMPLATE</div>
+    <h1>
+      <span class="accent-mono">gova-monolith</span> →<br>
+      <span class="accent-ios">gova-ios</span>
+    </h1>
+    <p class="header-sub">
+      An AI-driven translation pipeline. The Go JSON API and SQLite backend are built once
+      with gova-monolith. A second workflow reads that web app and generates a native
+      SwiftUI iOS app that calls the same API.
+    </p>
+    <div class="header-meta">
+      <span class="meta-pill">Swift 5.9 · iOS 17+</span>
+      <span class="meta-pill">SwiftUI · MVVM</span>
+      <span class="meta-pill">XcodeGen</span>
+      <span class="meta-pill">Claude Code</span>
+    </div>
+  </header>
+
+  <!-- ── ARCHITECTURE ─────────────────────────────────────────── -->
+  <div class="section" style="margin-bottom: 64px;">
+    <div class="section-label">Architecture</div>
+
+    <div class="arch-grid">
+
+      <!-- LEFT: gova-monolith -->
+      <div class="repo-card card-monolith">
+        <div class="repo-header">
+          <div class="repo-dot"></div>
+          <span class="repo-name">gova-monolith</span>
+          <span class="repo-desc">source</span>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">Docker Container</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Go JSON API</span>
+              <span class="item-note">chi router, net/http</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">SQLite</span>
+              <span class="item-note">WAL mode, /data/app.db</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Web Frontend</span>
+              <span class="item-note">vanilla JS · Tailwind</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">MCP Builder Server</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">scaffold_list</span>
+              <span class="item-note">model + handler + JS</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">scaffold_auth</span>
+              <span class="item-note">cookie sessions</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">scaffold_mobile_auth</span>
+              <span class="badge badge-flow">idempotent</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">inspect_app</span>
+              <span class="item-note">models · routes · JS</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">Commands</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">/build</span>
+              <span class="item-note">SEED.md → running web app</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">/export:mobile</span>
+              <span class="badge badge-flow">generates context</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">/launch</span>
+              <span class="item-note">Cloudflare Tunnel</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">JS Frontend Patterns</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">api.js</span>
+              <span class="item-note">get · post · del + CSRF</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">auth.js</span>
+              <span class="item-note">requireAuth · session cookie</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">*.js modules</span>
+              <span class="item-note">loadList · renderList · form</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CENTER: Animated connector -->
+      <div class="connector-wrap" id="connectorWrap">
+        <div class="connector-label">/ export : mobile</div>
+        <svg class="connector-svg" id="connectorSvg" viewBox="0 0 180 48" preserveAspectRatio="xMidYMid meet">
+          <!-- Flow line -->
+          <line class="flow-line" x1="0" y1="24" x2="160" y2="24"/>
+          <!-- Arrowhead -->
+          <polygon class="flow-arrow" points="160,18 176,24 160,30"/>
+        </svg>
+        <div class="connector-dest">SEED.md context</div>
+        <div class="connector-step">inspect_app<br>→ models + routes + JS<br>→ paste into gova-ios</div>
+      </div>
+
+      <!-- RIGHT: gova-ios -->
+      <div class="repo-card card-ios">
+        <div class="repo-header">
+          <div class="repo-dot"></div>
+          <span class="repo-name">gova-ios</span>
+          <span class="repo-desc">translation target</span>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">SEED.md</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">App Name · API Base URL</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Generated Context</span>
+              <span class="badge badge-flow">from /export:mobile</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">&nbsp;</span>
+              <span class="item-note">screens · endpoints · field types</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">Infrastructure (pre-committed)</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">APIClient.swift</span>
+              <span class="item-note">get · post · delete · Bearer</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">AuthManager.swift</span>
+              <span class="item-note">Keychain · ObservableObject</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Config.plist</span>
+              <span class="item-note">API_BASE_URL</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">Generated by /build</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Models/</span>
+              <span class="item-note">Codable · Identifiable structs</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">ViewModels/</span>
+              <span class="item-note">@MainActor · @Published state</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">Views/</span>
+              <span class="item-note">SwiftUI · NavigationStack</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="layer">
+          <div class="layer-title">Xcode Project</div>
+          <ul class="item-list">
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">project.yml</span>
+              <span class="item-note">XcodeGen manifest (source of truth)</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">xcodegen generate</span>
+              <span class="item-note">run after every new .swift file</span>
+            </li>
+            <li class="item">
+              <span class="item-icon">▸</span>
+              <span class="item-name">GovaApp.xcodeproj</span>
+              <span class="badge badge-ios">gitignored</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /arch-grid -->
+  </div>
+
+  <!-- ── SHARED GO API ─────────────────────────────────────────── -->
+  <div class="section api-section">
+    <div class="section-label">Shared Backend</div>
+    <div class="api-card">
+      <div class="api-consumer">
+        <div class="api-consumer-label consumer-monolith">Web Frontend</div>
+        <div class="api-detail">
+          <div class="api-detail-row">
+            <span class="api-detail-key">auth</span>
+            <span class="api-detail-val">signed HMAC-SHA256 cookie</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-key">csrf</span>
+            <span class="api-detail-val">double-submit cookie header</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-key">client</span>
+            <span class="api-detail-val">api.js · same-origin</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-key">routes</span>
+            <span class="api-detail-val">GET /pages/* · /api/*</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="api-center">
+        <div class="api-core-label">Docker · Go · SQLite</div>
+        <div class="api-core-name">Go JSON API</div>
+        <div class="api-core-sub">
+          chi router<br>
+          /api/* endpoints only<br>
+          handlers return JSON
+        </div>
+      </div>
+
+      <div class="api-consumer" style="text-align: right; align-items: flex-end;">
+        <div class="api-consumer-label consumer-ios">iOS App</div>
+        <div class="api-detail" style="align-items: flex-end;">
+          <div class="api-detail-row">
+            <span class="api-detail-val">Bearer &lt;token&gt; header</span>
+            <span class="api-detail-key">auth</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-val">not required (no browser)</span>
+            <span class="api-detail-key">csrf</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-val">APIClient.swift · URLSession</span>
+            <span class="api-detail-key">client</span>
+          </div>
+          <div class="api-detail-row">
+            <span class="api-detail-val">POST /api/auth/login_token</span>
+            <span class="api-detail-key">auth route</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="api-note">
+      scaffold_mobile_auth adds token endpoints alongside cookie auth — the web app is untouched.
+      Idempotent: safe to call from both gova-ios and gova-android.
+    </div>
+  </div>
+
+  <!-- ── TRANSLATION MAPPING ───────────────────────────────────── -->
+  <div class="section translation-section">
+    <div class="section-label">Translation Mapping</div>
+    <div class="translation-grid">
+      <div class="trans-col-header web-header">Web (JS Module)</div>
+      <div class="trans-col-header ios-header">iOS (SwiftUI)</div>
+
+      <div class="trans-cell web-cell"><span class="t-pattern">loadList()</span> → fetch → renderList()</div>
+      <div class="trans-cell ios-cell"><span class="t-ios">vm.load()</span> → @Published var items → List { ForEach }</div>
+
+      <div class="trans-cell web-cell">add_js_form creation form</div>
+      <div class="trans-cell ios-cell">.sheet(isPresented:) { Form { TextField... Button("Save") } }</div>
+
+      <div class="trans-cell web-cell">del('/api/x/:id') delete button</div>
+      <div class="trans-cell ios-cell">.onDelete { offsets in Task { await vm.delete(...) } }</div>
+
+      <div class="trans-cell web-cell">requireAuth() at module top</div>
+      <div class="trans-cell ios-cell">.onAppear { if !auth.isLoggedIn { showLogin = true } }</div>
+
+      <div class="trans-cell web-cell">api.js get(path)</div>
+      <div class="trans-cell ios-cell">try await <span class="t-ios">APIClient.shared.get</span>(path: path)</div>
+
+      <div class="trans-cell web-cell">element.textContent = item.name</div>
+      <div class="trans-cell ios-cell"><span class="t-ios">Text</span>(item.name)</div>
+
+      <div class="trans-cell web-cell">res.error ?? 'Something went wrong.'</div>
+      <div class="trans-cell ios-cell">Text(errorMessage).foregroundStyle(.red)</div>
+    </div>
+  </div>
+
+  <!-- ── /build WORKFLOW ───────────────────────────────────────── -->
+  <div class="section workflow-section">
+    <div class="section-label">/build Workflow (gova-ios)</div>
+    <div class="workflow-steps">
+
+      <div class="step step-validate">
+        <div class="step-num">01</div>
+        <div class="step-title">Validate</div>
+        <div class="step-detail">SEED.md Generated Context must be populated</div>
+      </div>
+
+      <div class="step step-brainstorm">
+        <div class="step-num">02</div>
+        <div class="step-title">Brainstorm</div>
+        <div class="step-detail">Confirm screens, nav flow, auth requirement</div>
+        <span class="step-badge badge badge-ai">superpowers</span>
+      </div>
+
+      <div class="step step-plan">
+        <div class="step-num">03</div>
+        <div class="step-title">Plan</div>
+        <div class="step-detail">scaffold_mobile_auth → models → screens → nav</div>
+        <span class="step-badge badge badge-ai">writing-plans</span>
+      </div>
+
+      <div class="step step-branch">
+        <div class="step-num">04</div>
+        <div class="step-title">Branch</div>
+        <div class="step-detail">Isolated git worktree per build</div>
+      </div>
+
+      <div class="step step-implement">
+        <div class="step-num">05</div>
+        <div class="step-title">Implement</div>
+        <div class="step-detail">ViewModel → View → xcodegen generate (repeat per screen)</div>
+        <span class="step-badge badge badge-ios">SwiftUI</span>
+      </div>
+
+      <div class="step step-verify">
+        <div class="step-num">06</div>
+        <div class="step-title">Verify</div>
+        <div class="step-detail">xcodebuild → BUILD SUCCEEDED</div>
+        <span class="step-badge badge badge-mono">xcodegen</span>
+      </div>
+
+      <div class="step step-done">
+        <div class="step-num">07</div>
+        <div class="step-title">Open Xcode</div>
+        <div class="step-detail">ios/GovaApp.xcodeproj → Simulator</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FOOTER ────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-left">GOVA TRIFECTA &nbsp;·&nbsp; gova-ios template &nbsp;·&nbsp; 2026</div>
+    <div class="footer-right">
+      <div class="footer-item">backend <span>gova-monolith</span></div>
+      <div class="footer-item">ios <span>gova-ios</span></div>
+      <div class="footer-item">android <span>gova-android (planned)</span></div>
+    </div>
+  </footer>
+
+  <script>
+    // Animate data packets traveling from gova-monolith to gova-ios
+    (function () {
+      const wrap = document.getElementById('connectorWrap');
+      if (!wrap) return;
+
+      const svg = document.getElementById('connectorSvg');
+      const svgRect = () => svg.getBoundingClientRect();
+      const wrapRect = () => wrap.getBoundingClientRect();
+
+      function spawnPacket() {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        if (window.innerWidth < 900) return;
+
+        const wr = wrapRect();
+        const sr = svgRect();
+
+        const dot = document.createElement('div');
+        dot.className = 'packet';
+
+        // Start at left edge of SVG, vertically centered on the SVG line
+        const startX = sr.left - wr.left;
+        const endX   = sr.right - wr.left - 20;
+        const y      = sr.top - wr.top + 24; // vertical center of SVG (half of 48px viewBox height)
+
+        dot.style.top  = y + 'px';
+        dot.style.left = startX + 'px';
+
+        wrap.appendChild(dot);
+
+        const duration = 1800 + Math.random() * 400;
+        let start = null;
+
+        function frame(ts) {
+          if (!start) start = ts;
+          const p = Math.min((ts - start) / duration, 1);
+          // ease-in-out cubic
+          const ease = p < 0.5
+            ? 4 * p * p * p
+            : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+          const x = startX + (endX - startX) * ease;
+
+          // fade in first 8%, full opacity 8–88%, fade out last 12%
+          let opacity = 1;
+          if (p < 0.08) opacity = p / 0.08;
+          else if (p > 0.88) opacity = (1 - p) / 0.12;
+
+          dot.style.left    = x + 'px';
+          dot.style.opacity = opacity;
+
+          if (p < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            dot.remove();
+          }
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      // Spawn first packet immediately, then on interval with slight jitter
+      spawnPacket();
+      setInterval(() => {
+        spawnPacket();
+        // Occasionally send a cluster of two
+        if (Math.random() > 0.65) {
+          setTimeout(spawnPacket, 220 + Math.random() * 180);
+        }
+      }, 1400 + Math.random() * 200);
+    })();
+  </script>
+
+</body>
+</html>
