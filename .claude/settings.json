@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcodegen *)",
+      "Bash(swift build *)",
+      "Bash(mkdir -p *)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "gova-builder"
+  ]
+}
