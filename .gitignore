@@ -16,3 +16,6 @@ build/
 # Claude — generated per-developer by install-claude.sh
 .mcp.json
 .claude/settings.local.json
+
+# Personal notes
+HELP.md
