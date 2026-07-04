@@ -44,7 +44,7 @@ This tool is idempotent — safe to call even if gova-android has already called
 Endpoints added to the Go API:
 - `POST /api/auth/login_token` → `{ "token": "...", "user": { "id": 1, "name": "...", "email": "..." } }`
 - `DELETE /api/auth/logout_token` → invalidates the token
-- `GET /api/auth/me` → already exists, accepts Bearer token
+- `GET /api/auth/me_token` → returns the current user for a valid Bearer token
 
 ### Step 3 — Define Swift models
 
