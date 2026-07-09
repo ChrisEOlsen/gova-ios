@@ -74,9 +74,10 @@ PYEOF
 ok "API_BASE_URL set to: $API_URL"
 
 step "Configuring gova-builder MCP (optional)"
-printf "  gova-monolith container name (press Enter to skip): "
-read -r CONTAINER_NAME </dev/tty
-if [ -n "$CONTAINER_NAME" ]; then
+printf "  gova-monolith APP_NAME, from its .env (press Enter to skip): "
+read -r GOVA_APP_NAME </dev/tty
+if [ -n "$GOVA_APP_NAME" ]; then
+    CONTAINER_NAME="${GOVA_APP_NAME}-mcp-1"
     python3 - "$SCRIPT_DIR" "$CONTAINER_NAME" <<'PYEOF'
 import json, sys, os
 project_dir, container = sys.argv[1], sys.argv[2]
@@ -93,10 +94,11 @@ with open(os.path.join(project_dir, ".mcp.json"), "w") as f:
     f.write("\n")
 print(f"  + .mcp.json → gova-builder via {container}")
 PYEOF
-    ok "gova-builder MCP configured"
+    ok "gova-builder MCP configured → $CONTAINER_NAME"
+    warn "gova-monolith's mcp container must be running (docker compose up -d in that repo) for /mcp to connect"
 else
     warn "MCP skipped — scaffold_mobile_auth will not be available"
-    warn "Re-run install-claude.sh and enter a container name to enable it"
+    warn "Re-run install-claude.sh and enter gova-monolith's APP_NAME to enable it"
 fi
 
 step "Generating Xcode project"
