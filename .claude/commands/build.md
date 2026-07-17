@@ -18,7 +18,30 @@ If it is empty or contains only the placeholder, STOP and tell the developer:
 
 ---
 
-## Step 2: Brainstorm
+## Step 2: Set App Identity
+
+This repo is a template — every new app starts from a fresh clone, and `ios/project.yml`
+ships with the same placeholder values every time (`PRODUCT_BUNDLE_IDENTIFIER:
+com.gova.GovaApp`, `CFBundleDisplayName: GovaApp`). If you skip this step, every app
+you build from this template gets the same bundle ID and home-screen name — they
+can't coexist on one device, and they can't be registered as separate App IDs in
+App Store Connect.
+
+Read `## App Name` from `SEED.md`. Derive `BundleSlug` — lowercase, alphanumeric only,
+no spaces (e.g. "Task Manager" → `taskmanager`).
+
+Edit `ios/project.yml`:
+- `PRODUCT_BUNDLE_IDENTIFIER` → `com.gova.{BundleSlug}` (must be unique per app)
+- `CFBundleDisplayName` → the app name from SEED.md, verbatim
+
+Leave the top-level `name:`, the `GovaApp` target, and the scheme name alone — they're
+internal to this repo's tooling and don't need to be unique across apps.
+
+Run `xcodegen generate` after editing.
+
+---
+
+## Step 3: Brainstorm
 
 Use the `superpowers:brainstorming` skill with `SEED.md` as input.
 
@@ -32,7 +55,7 @@ Wait for developer approval before proceeding.
 
 ---
 
-## Step 3: Write an Implementation Plan
+## Step 4: Write an Implementation Plan
 
 Use the `superpowers:writing-plans` skill.
 
@@ -53,14 +76,14 @@ Use the `superpowers:writing-plans` skill.
 
 ---
 
-## Step 4: Create Feature Branch
+## Step 5: Create Feature Branch
 
 Use `superpowers:using-git-worktrees` to create an isolated branch.
 Derive the branch name from the app name in SEED.md: "Task Manager" → `build/task-manager`
 
 ---
 
-## Step 5: Implement
+## Step 6: Implement
 
 Use `superpowers:subagent-driven-development` to execute the plan.
 
@@ -75,7 +98,7 @@ cd ios && xcodegen generate
 
 ---
 
-## Step 6: Verify
+## Step 7: Verify
 
 Run:
 ```bash
@@ -97,7 +120,7 @@ Then use `superpowers:verification-before-completion` and confirm:
 
 ---
 
-## Step 7: Done
+## Step 8: Done
 
 Report to the developer:
 
