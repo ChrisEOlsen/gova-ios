@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct GovaAppApp: App {
-    @ObservedObject private var auth = AuthManager.shared
+    @StateObject private var auth = AuthManager.shared
 
     var body: some Scene {
         WindowGroup {

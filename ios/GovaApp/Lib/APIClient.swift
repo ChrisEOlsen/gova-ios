@@ -76,7 +76,7 @@ final class APIClient {
         let request = makeRequest(path: path, method: "DELETE")
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            let _: EmptyResponse = try handle(data: data, response: response)
+            try validate(data: data, response: response)
         } catch let error as APIError {
             throw error
         } catch {
@@ -84,7 +84,19 @@ final class APIClient {
         }
     }
 
+    /// Every gova-monolith JSON response is wrapped in `{"ok":bool,"data":...,"error":"..."}`
+    /// (see src/app/handlers/json.go in gova-monolith). `T` here is the payload type inside
+    /// `data` — not the raw response body.
     private func handle<T: Decodable>(data: Data, response: URLResponse) throws -> T {
+        try validate(data: data, response: response)
+        do {
+            return try decoder.decode(Envelope<T>.self, from: data).data
+        } catch {
+            throw APIError.decode(error)
+        }
+    }
+
+    private func validate(data: Data, response: URLResponse) throws {
         guard let http = response as? HTTPURLResponse else {
             throw APIError.network(URLError(.badServerResponse))
         }
@@ -93,13 +105,8 @@ final class APIClient {
                 ?? "Server error \(http.statusCode)"
             throw APIError.server(statusCode: http.statusCode, message: msg)
         }
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw APIError.decode(error)
-        }
     }
 }
 
 private struct ServerError: Decodable { let error: String }
-private struct EmptyResponse: Decodable {}
+private struct Envelope<T: Decodable>: Decodable { let ok: Bool; let data: T }

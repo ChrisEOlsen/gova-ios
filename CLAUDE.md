@@ -20,6 +20,17 @@ after adding any Swift file, always run `xcodegen generate` inside `ios/` to upd
 
 ---
 
+## First-Time Setup (once per clone)
+
+Before running `/export:mobile` or `/build`, the developer must run `./install-claude.sh`
+from the repo root. It sets `Config.plist`'s `API_BASE_URL` and, if given the gova-monolith
+project's `APP_NAME`, writes `.mcp.json` so the `gova-builder` MCP tools (`inspect_app`,
+`scaffold_mobile_auth`) connect to that project's running MCP container. `.mcp.json` ships
+empty — those tools are unavailable until this script has been run and `gova-monolith`'s
+containers are up (`docker compose up -d`).
+
+---
+
 ## Translation Guide
 
 ### Step 1 — Read the SEED.md Generated Context
@@ -41,7 +52,9 @@ alongside the existing cookie auth. The web app's cookie auth is untouched.
 
 This tool is idempotent — safe to call even if gova-android has already called it.
 
-Endpoints added to the Go API:
+Endpoints added to the Go API (every gova-monolith response is wrapped in
+`{"ok":bool,"data":...,"error":"..."}` — `APIClient` unwraps this automatically, so the
+shapes below are the `data` payload your Swift types decode, not the raw response body):
 - `POST /api/auth/login_token` → `{ "token": "...", "user": { "id": 1, "name": "...", "email": "..." } }`
 - `DELETE /api/auth/logout_token` → invalidates the token
 - `GET /api/auth/me_token` → returns the current user for a valid Bearer token
@@ -59,6 +72,11 @@ Field type mapping:
 | boolean | Bool |
 | float | Double |
 | created_at | Date |
+
+If a field can be `NULL` in the gova-monolith schema (check `inspect_app` or the model's
+Go struct — a pointer type or `sql.Null*` field means nullable), make the Swift property
+optional (e.g. `String?`) instead of using the table above directly. A non-optional
+property decoding a `null` value fails the whole list, not just that item.
 
 All models must conform to `Codable` and `Identifiable` with `var id: Int`.
 Use `CodingKeys` to map `snake_case` JSON to `camelCase` Swift properties.
@@ -175,6 +193,9 @@ Never overwrite them. Import and use them.
 - `static let shared = APIClient()`
 - Reads `API_BASE_URL` from `Config.plist` at init
 - Injects `Authorization: Bearer <token>` header if `AuthManager` has a token
+- Automatically unwraps gova-monolith's `{"ok":bool,"data":...,"error":"..."}` envelope —
+  `get`/`post` return the decoded `data` payload directly; models describe only that payload,
+  never the envelope itself
 - `func get<T: Decodable>(path: String) async throws -> T`
 - `func post<T: Decodable>(path: String, body: some Encodable) async throws -> T`
 - `func delete(path: String) async throws`
