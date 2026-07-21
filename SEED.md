@@ -14,7 +14,8 @@ http://localhost:8080
 
 ---
 ## Generated Context
-> Auto-populated by running /export:mobile from this repo.
-> Requires Web App Path above to be set. Do not edit this section manually.
+> Auto-populated by running /export:mobile from this repo — it writes this section
+> for you. Requires Web App Path above to be set. Do not edit this section manually;
+> re-run /export:mobile instead.
 
-<!-- PASTE /export:mobile OUTPUT BELOW THIS LINE -->
+<!-- /export:mobile WRITES BELOW THIS LINE -->

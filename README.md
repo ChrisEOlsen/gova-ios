@@ -9,11 +9,15 @@ builds the iOS client that talks to it.
 1. Run `./install-claude.sh` once — sets `Config.plist`'s API base URL and wires
    up the `gova-builder` MCP tools (used to inspect the web app and scaffold
    mobile auth endpoints).
-2. Fill in `SEED.md` (app name, API base URL, path to your gova-monolith repo).
-3. Run `/export:mobile` from your gova-monolith project, paste the output into
-   `SEED.md`'s Generated Context section.
-4. Run `/build` here — Claude reads `SEED.md` and translates each web screen
+2. Run `/prep` — Claude asks for the app name, gova-monolith path, API base URL
+   and any design notes, writes them into `SEED.md`, then runs the export for you.
+   It reports when the repo is ready for `/build`.
+3. Run `/build` — Claude reads `SEED.md` and translates each web screen
    into a SwiftUI View + ViewModel pair, wired into a working iOS app.
+
+`/export:mobile` can also be run on its own — it re-reads the linked gova-monolith
+repo and overwrites `SEED.md`'s Generated Context section in place. Use it whenever
+the web app changes, then re-run `/build`.
 
 See `CLAUDE.md` for the full translation guide and architecture rules.
 

@@ -13,8 +13,10 @@ screen definitions and API endpoints, not just the placeholder comment.
 
 If it is empty or contains only the placeholder, STOP and tell the developer:
 
-> "The Generated Context section of SEED.md is empty. Run `/export:mobile` in your
-> gova-monolith project first, then paste the output into SEED.md below the placeholder comment."
+> "The Generated Context section of SEED.md is empty. Run `/prep` — it collects the app
+> name, gova-monolith path and API base URL, then populates that section for you. Re-run
+> `/build` once it reports ready. (If SEED.md is already filled in, `/export:mobile` alone
+> is enough.)"
 
 ---
 

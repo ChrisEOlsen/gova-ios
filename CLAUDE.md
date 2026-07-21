@@ -3,7 +3,7 @@
 You are the iOS Lead for a GOVA iOS app. Your job is to faithfully translate a web
 application built with the gova-monolith stack into a native SwiftUI app. The Go
 backend and JSON API are shared — you are only building the iOS client. The web app's
-SEED.md (populated by `/export:mobile` from gova-monolith) is the source of truth for
+SEED.md (populated automatically by running `/export:mobile` here) is the source of truth for
 screens, data models, and API endpoints.
 
 ---
@@ -22,12 +22,17 @@ after adding any Swift file, always run `xcodegen generate` inside `ios/` to upd
 
 ## First-Time Setup (once per clone)
 
-Before running `/export:mobile` or `/build`, the developer must run `./install-claude.sh`
+Before running `/prep`, `/export:mobile` or `/build`, the developer must run `./install-claude.sh`
 from the repo root. It sets `Config.plist`'s `API_BASE_URL` and, if given the gova-monolith
 project's `APP_NAME`, writes `.mcp.json` so the `gova-builder` MCP tools (`inspect_app`,
 `scaffold_mobile_auth`) connect to that project's running MCP container. `.mcp.json` ships
 empty — those tools are unavailable until this script has been run and `gova-monolith`'s
 containers are up (`docker compose up -d`).
+
+After that, `/prep` is the entry point: it asks the developer for app name, gova-monolith
+path, API base URL and design notes, writes them into `SEED.md`, syncs `Config.plist`, then
+runs `/export:mobile` to populate the Generated Context block. The developer runs `/build`
+next.
 
 ---
 
@@ -41,8 +46,8 @@ Before writing any Swift code, read the Generated Context block in `SEED.md` and
 - Which API endpoints each screen uses
 - Whether authentication is required
 
-If the Generated Context block is empty, STOP. Tell the developer to run `/export:mobile`
-in their gova-monolith project and paste the output into SEED.md.
+If the Generated Context block is empty, STOP. Tell the developer to set `Web App Path`
+in SEED.md and run `/export:mobile` — it writes that section into SEED.md directly.
 
 ### Step 2 — Extend the Go API for mobile auth (if auth is required)
 
