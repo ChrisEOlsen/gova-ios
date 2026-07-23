@@ -60,9 +60,9 @@ This tool is idempotent — safe to call even if gova-android has already called
 Endpoints added to the Go API (every gova-monolith response is wrapped in
 `{"ok":bool,"data":...,"error":"..."}` — `APIClient` unwraps this automatically, so the
 shapes below are the `data` payload your Swift types decode, not the raw response body):
-- `POST /api/auth/login_token` → `{ "token": "...", "user": { "id": 1, "name": "...", "email": "..." } }`
-- `DELETE /api/auth/logout_token` → invalidates the token
-- `GET /api/auth/me_token` → returns the current user for a valid Bearer token
+- `POST /api/v1/auth/login_token` → `{ "token": "...", "user": { "id": 1, "name": "...", "email": "..." } }`
+- `DELETE /api/v1/auth/logout_token` → invalidates the token
+- `GET /api/v1/auth/me_token` → returns the current user for a valid Bearer token
 
 ### Step 3 — Define Swift models
 
@@ -76,12 +76,11 @@ Field type mapping:
 | int | Int |
 | boolean | Bool |
 | float | Double |
-| created_at | Date |
+| created_at | Date (RFC3339, decode with .iso8601) |
 
-If a field can be `NULL` in the gova-monolith schema (check `inspect_app` or the model's
-Go struct — a pointer type or `sql.Null*` field means nullable), make the Swift property
-optional (e.g. `String?`) instead of using the table above directly. A non-optional
-property decoding a `null` value fails the whole list, not just that item.
+The web app's model marshals nullable columns as JSON `null` and the manifest
+records them explicitly — a `*string` in the Go struct means `String?` in Swift.
+You no longer need to read the SQL schema to determine this.
 
 All models must conform to `Codable` and `Identifiable` with `var id: Int`.
 Use `CodingKeys` to map `snake_case` JSON to `camelCase` Swift properties.
