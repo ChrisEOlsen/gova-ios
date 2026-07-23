@@ -47,7 +47,7 @@ next.
 ### Step 1 — Read the SEED.md Generated Context
 
 Before writing any Swift code, read the Generated Context block in `SEED.md` and confirm:
-- The list of screens (one per JS module in the web app)
+- The list of screens (one per model with a `list` endpoint in the Generated Context)
 - Each screen's data model fields and their types
 - Which API endpoints each screen uses
 - Whether authentication is required
@@ -82,7 +82,7 @@ Field type mapping:
 | int | Int |
 | boolean | Bool |
 | float | Double |
-| created_at | Date (RFC3339, decode with .iso8601) |
+| timestamp | Date (RFC3339, decode with .iso8601) |
 
 The web app's model marshals nullable columns as JSON `null` and the manifest
 records them explicitly — a `*string` in the Go struct means `String?` in Swift.
@@ -112,7 +112,7 @@ After writing the file, run:
 cd ios && xcodegen generate
 ```
 
-### Step 4 — Build screens (one per JS module in the web app)
+### Step 4 — Build screens (one per model with a `list` endpoint)
 
 Each screen becomes two files:
 - `ios/GovaApp/ViewModels/NameViewModel.swift` — owns all fetch logic and `@Published` state
@@ -165,7 +165,7 @@ Check before reporting done:
 
 ## Web-to-iOS Pattern Mapping
 
-| Web (JS module pattern) | iOS (SwiftUI equivalent) |
+| Web app resource (from the manifest) | iOS (SwiftUI equivalent) |
 |---|---|
 | `loadList()` → fetch → `renderList()` | `vm.load()` → `@Published var items: [Model]` → `List { ForEach(items) }` |
 | `add_js_form` creation form | `.sheet(isPresented: $showCreate) { Form { TextField... Button("Save") } }` |
@@ -221,6 +221,17 @@ Never overwrite them. Import and use them.
 - Keychain key: `"gova.auth.token"`
 
 **`UserInfo`** (defined in `AuthManager.swift`): `id: Int`, `name: String`, `email: String`
+
+**`VersionGate.swift`**
+- Launch-time compatibility check. Calls `GET /api/v1/_version`, compares this
+  build's `CFBundleShortVersionString` against the server's `min_client_version`.
+- **Fails open** — any error or unreachable endpoint leaves the app usable; only a
+  provably-too-old client is blocked.
+- Wired in `GovaAppApp.swift`; shows `UpdateRequiredView` when the client is too old.
+
+**`UpdateRequiredView.swift`**
+- The blocking "Update Required" screen shown by `VersionGate`. Pre-committed;
+  never regenerate.
 
 ---
 

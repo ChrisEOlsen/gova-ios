@@ -48,7 +48,7 @@ Run `xcodegen generate` after editing.
 Use the `superpowers:brainstorming` skill with `SEED.md` as input.
 
 Confirm with the developer:
-- The complete list of screens to generate (one per JS module in Generated Context)
+- The complete list of screens to generate (one per model with a `list` endpoint in the Generated Context)
 - Navigation flow: which screen is root, which push onto the stack
 - Whether authentication is required
 - Any iOS-specific UX notes beyond the CLAUDE.md defaults
@@ -65,7 +65,7 @@ Use the `superpowers:writing-plans` skill.
 1. `scaffold_mobile_auth` via MCP (if auth required and MCP is wired) — idempotent, safe to run first
 2. Swift model structs — one file per data model in Generated Context
 3. Auth screens: `LoginViewModel.swift` + `LoginView.swift` (if auth required)
-4. One task per screen from SEED.md: ViewModel → View → `xcodegen generate`
+4. One task per resource screen in the Generated Context: ViewModel → View → `xcodegen generate`
 5. Navigation wiring in `ContentView.swift`
 6. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
 
