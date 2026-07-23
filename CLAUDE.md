@@ -82,7 +82,7 @@ Field type mapping:
 | int | Int |
 | boolean | Bool |
 | float | Double |
-| created_at | Date (RFC3339, decode with .iso8601) |
+| timestamp | Date (RFC3339, decode with .iso8601) |
 
 The web app's model marshals nullable columns as JSON `null` and the manifest
 records them explicitly — a `*string` in the Go struct means `String?` in Swift.
