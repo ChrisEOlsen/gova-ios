@@ -1,5 +1,5 @@
 import unittest
-from export_manifest import render_context, swift_type, pascal
+from export_manifest import render_context, swift_type, pascal, splice_seed, MARKER
 
 SAMPLE = {
     "api_version": "1.0.0",
@@ -108,6 +108,52 @@ class TestRenderContextEmpty(unittest.TestCase):
         self.assertIn("- Bearer (mobile) auth ready: no", out)
         self.assertIn("One list screen per model with a `list` endpoint: []", out)
         self.assertIn("Login screen: no", out)
+
+
+SEED_WITH_MARKER = """# iOS App Specification
+
+## App Name
+Task Manager
+
+## Web App Path
+/Users/dev/gova-monolith
+
+---
+## Generated Context
+> Auto-populated by /export:mobile.
+
+<!-- /export:mobile WRITES BELOW THIS LINE -->
+### Web App Context
+OLD STALE BLOCK THAT MUST BE REPLACED
+"""
+
+
+class TestSpliceSeed(unittest.TestCase):
+    def test_preserves_developer_section_byte_for_byte(self):
+        head = SEED_WITH_MARKER[: SEED_WITH_MARKER.index(MARKER) + len(MARKER)]
+        out = splice_seed(SEED_WITH_MARKER, "NEW BLOCK")
+        self.assertTrue(out.startswith(head))
+
+    def test_replaces_below_marker(self):
+        out = splice_seed(SEED_WITH_MARKER, "NEW BLOCK")
+        self.assertIn("NEW BLOCK", out)
+        self.assertNotIn("OLD STALE BLOCK", out)
+
+    def test_idempotent(self):
+        once = splice_seed(SEED_WITH_MARKER, "NEW BLOCK")
+        twice = splice_seed(once, "NEW BLOCK")
+        self.assertEqual(once, twice)
+
+    def test_marker_absent_appends_marker_and_block(self):
+        seed = "# Spec\n\n## App Name\nFoo\n"
+        out = splice_seed(seed, "NEW BLOCK")
+        self.assertTrue(out.startswith(seed))
+        self.assertIn(MARKER, out)
+        self.assertIn("NEW BLOCK", out)
+
+    def test_marker_appears_exactly_once(self):
+        out = splice_seed(SEED_WITH_MARKER, "NEW BLOCK")
+        self.assertEqual(out.count(MARKER), 1)
 
 
 if __name__ == "__main__":

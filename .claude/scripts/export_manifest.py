@@ -76,3 +76,49 @@ def render_context(manifest: dict) -> str:
     lines.append(f"  - Login screen: {'yes' if bearer_ready else 'no'}")
 
     return "\n".join(lines)
+
+
+MARKER = "<!-- /export:mobile WRITES BELOW THIS LINE -->"
+
+
+def splice_seed(seed_text: str, block: str) -> str:
+    """Replace everything below the marker with block; preserve everything from
+    the top through the marker byte-for-byte. Append the marker first if absent."""
+    if MARKER in seed_text:
+        head = seed_text[: seed_text.index(MARKER) + len(MARKER)]
+        return head + "\n\n" + block + "\n"
+    sep = "" if seed_text.endswith("\n") else "\n"
+    return seed_text + sep + MARKER + "\n\n" + block + "\n"
+
+
+def main(argv=None) -> int:
+    argv = argv if argv is not None else sys.argv[1:]
+    if len(argv) != 2:
+        print("usage: export_manifest.py <api.json path> <SEED.md path>", file=sys.stderr)
+        return 2
+    api_path, seed_path = argv
+    try:
+        with open(api_path) as fh:
+            manifest = json.load(fh)
+    except FileNotFoundError:
+        print(f"api.json not found at {api_path}", file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as exc:
+        print(f"api.json is not valid JSON: {exc}", file=sys.stderr)
+        return 1
+
+    block = render_context(manifest)
+    with open(seed_path) as fh:
+        seed = fh.read()
+    with open(seed_path, "w") as fh:
+        fh.write(splice_seed(seed, block))
+
+    n_models = len(manifest.get("models") or [])
+    n_endpoints = len(manifest.get("endpoints") or [])
+    bearer = any(e.get("kind") == "mobile_login" for e in (manifest.get("endpoints") or []))
+    print(f"models={n_models} endpoints={n_endpoints} bearer_auth={'yes' if bearer else 'no'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
