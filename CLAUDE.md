@@ -18,6 +18,12 @@ The Go JSON API (running via Docker in the gova-monolith project) is the shared 
 This repo only contains the iOS client. The Xcode project is managed by XcodeGen —
 after adding any Swift file, always run `xcodegen generate` inside `ios/` to update the project.
 
+> **API manifest (as of the monolith's Build 2):** the web app now serves a
+> machine-readable contract at `GET /api/v1/_manifest` — every model (with field
+> types and nullability) and every endpoint (method, path, auth, kind). A future
+> update to `/export:mobile` will read this instead of parsing Go/JS source. Until
+> then, `/export:mobile` still works as documented below.
+
 ---
 
 ## First-Time Setup (once per clone)
