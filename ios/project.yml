@@ -24,6 +24,8 @@ targets:
       path: GovaApp/Info.plist
       properties:
         CFBundleDisplayName: GovaApp
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
         UILaunchScreen:
           UIColorName: ""
         UISupportedInterfaceOrientations:
