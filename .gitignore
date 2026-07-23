@@ -8,6 +8,10 @@ xcuserdata/
 *.dSYM
 build/
 
+# XcodeGen also generates the Info.plist from project.yml properties
+GovaApp/Info.plist
+ios/GovaApp/Info.plist
+
 # OS
 .DS_Store
 .DS_Store?
@@ -20,3 +24,7 @@ build/
 # Personal notes
 HELP.md
 .superpowers/
+
+# Python (export transform test artifacts)
+__pycache__/
+*.pyc
