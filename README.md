@@ -6,9 +6,9 @@ builds the iOS client that talks to it.
 
 ## How it works
 
-1. Run `./install-claude.sh` once — sets `Config.plist`'s API base URL and wires
-   up the `gova-builder` MCP tools (used to inspect the web app and scaffold
-   mobile auth endpoints).
+1. Run `./install-claude.sh` once — sets `Config.plist`'s API base URL. (`/export:mobile` reads the web app's
+   committed `src/app/api.json` manifest directly — no MCP or running server needed;
+   auth, cookie + bearer, is scaffolded on the monolith side with `scaffold_auth`.)
 2. Run `/prep` — Claude asks for the app name, gova-monolith path, API base URL
    and any design notes, writes them into `SEED.md`, then runs the export for you.
    It reports when the repo is ready for `/build`.
