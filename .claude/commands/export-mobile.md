@@ -73,5 +73,4 @@ Tell the developer the script's summary line, e.g.:
 If the summary shows `bearer_auth=no`, add:
 
 > "Bearer (mobile) auth is not set up yet. In your gova-monolith project, run
-> `scaffold_mobile_auth` (after `scaffold_auth`) to add token endpoints, then
-> re-run /export:mobile."
+> `scaffold_auth` to add token endpoints, then re-run /export:mobile."

@@ -37,7 +37,7 @@ after adding any Swift file, always run `xcodegen generate` inside `ios/` to upd
 Before running `/prep`, `/export:mobile` or `/build`, the developer must run `./install-claude.sh`
 from the repo root. It sets `Config.plist`'s `API_BASE_URL` and, if given the gova-monolith
 project's `APP_NAME`, writes `.mcp.json` so the `gova-builder` MCP tools (`inspect_app`,
-`scaffold_mobile_auth`) connect to that project's running MCP container. `.mcp.json` ships
+`scaffold_auth`) connect to that project's running MCP container. `.mcp.json` ships
 empty — those tools are unavailable until this script has been run and `gova-monolith`'s
 containers are up (`docker compose up -d`).
 
@@ -64,8 +64,9 @@ in SEED.md and run `/export:mobile` — it writes that section into SEED.md dire
 ### Step 2 — Extend the Go API for mobile auth (if auth is required)
 
 Web auth uses signed HMAC-SHA256 cookies — mobile cannot use these.
-Use the gova-builder MCP tool `scaffold_mobile_auth` to add token-based auth endpoints
-alongside the existing cookie auth. The web app's cookie auth is untouched.
+Bearer token endpoints are already present if the web app was built with `scaffold_auth`
+(which now emits both cookie and bearer auth). If the manifest lacks them, run
+`scaffold_auth` in the gova-monolith project.
 
 This tool is idempotent — safe to call even if gova-android has already called it.
 
@@ -248,7 +249,7 @@ The gova-builder MCP (from the connected gova-monolith instance) provides:
 | Tool | When to use |
 |---|---|
 | `inspect_app` | Read web app models, handlers, routes before translating |
-| `scaffold_mobile_auth` | Add token auth endpoints to the Go API (idempotent) |
+| `scaffold_auth` | Full auth (cookie + bearer) endpoints on the Go API (idempotent) |
 
 All iOS file creation is done by Claude directly using its file tools.
 No MCP tools are used for Swift file generation.

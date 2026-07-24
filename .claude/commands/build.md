@@ -62,12 +62,16 @@ Wait for developer approval before proceeding.
 Use the `superpowers:writing-plans` skill.
 
 **Mandatory plan order:**
-1. `scaffold_mobile_auth` via MCP (if auth required and MCP is wired) — idempotent, safe to run first
-2. Swift model structs — one file per data model in Generated Context
-3. Auth screens: `LoginViewModel.swift` + `LoginView.swift` (if auth required)
-4. One task per resource screen in the Generated Context: ViewModel → View → `xcodegen generate`
-5. Navigation wiring in `ContentView.swift`
-6. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
+1. Swift model structs — one file per data model in Generated Context
+2. Auth screens: `LoginViewModel.swift` + `LoginView.swift` (if auth required)
+3. One task per resource screen in the Generated Context: ViewModel → View → `xcodegen generate`
+4. Navigation wiring in `ContentView.swift`
+5. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
+
+Note: bearer auth ships with the web app's `scaffold_auth` (cookie + bearer in one run), so
+`/build` scaffolds nothing auth-related here. If `/export:mobile`'s summary showed
+`bearer_auth=no`, the developer needs to run `scaffold_auth` in their gova-monolith project
+before this plan's auth screens have a token endpoint to call.
 
 **Mandatory constraints for every task in the plan:**
 - Follow the CLAUDE.md translation guide before writing each screen

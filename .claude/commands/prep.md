@@ -23,7 +23,7 @@ If `Config.plist` is missing or has no `API_BASE_URL`, STOP:
 > generates the Xcode project. Then re-run `/prep`."
 
 If `.mcp.json` has no `gova-builder` entry, do NOT stop. Note it and carry on —
-`scaffold_mobile_auth` will be unavailable (it is monolith-side). `/export:mobile`
+`scaffold_auth` will be unavailable (it is monolith-side). `/export:mobile`
 reads the web app's `src/app/api.json` directly and does not need the MCP.
 
 ---
@@ -116,10 +116,9 @@ It reads the web app's API manifest (`$WEB_APP/src/app/api.json`) and writes the
 The export prints `bearer_auth=yes` or `bearer_auth=no` in its summary.
 
 - `bearer_auth=yes` → mobile (Bearer token) auth is ready.
-- `bearer_auth=no` → the web app has no token endpoints yet. If the `gova-builder` MCP
-  is connected, tell the developer `/build` will call `scaffold_mobile_auth` as its
-  first plan step (it is idempotent). If the MCP is not connected, tell them to run
-  `scaffold_mobile_auth` from their gova-monolith project in Claude Code before `/build`.
+- `bearer_auth=no` → the web app has no token endpoints yet. `/build` does not scaffold
+  auth itself — tell the developer to run `scaffold_auth` (it now includes bearer/mobile
+  auth) from their gova-monolith project in Claude Code before `/build`.
 
 ---
 
@@ -133,7 +132,7 @@ Show the developer a summary and confirm readiness:
 > - API Base URL: [url] (SEED.md + Config.plist in sync)
 > - Web App Path: [path]
 > - Exported: [N] models, [N] endpoints (bearer auth: [ready / not set up])
-> - Mobile auth: [ready / will be scaffolded by /build / run scaffold_mobile_auth first]
+> - Mobile auth: [ready / run scaffold_auth (it now includes bearer/mobile auth) first]
 > - gova-builder MCP: [connected / not configured]
 >
 > Run `/build` to translate the web app to iOS.
