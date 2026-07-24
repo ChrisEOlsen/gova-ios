@@ -24,6 +24,12 @@ after adding any Swift file, always run `xcodegen generate` inside `ios/` to upd
 > update to `/export:mobile` will read this instead of parsing Go/JS source. Until
 > then, `/export:mobile` still works as documented below.
 
+> **Full CRUD (as of the monolith's Build 3b):** a resource scaffolded with
+> `scaffold_resource` exposes `list`, `detail`, `create`, `update`, and `delete`
+> endpoints (those `kind`s appear in the manifest). `/export:mobile` surfaces them
+> under the resource; a future `/build` update can generate detail/edit/delete
+> screens from them. (`scaffold_list` resources remain list-only.)
+
 ---
 
 ## First-Time Setup (once per clone)
