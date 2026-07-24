@@ -708,7 +708,7 @@
             </li>
             <li class="item">
               <span class="item-icon">▸</span>
-              <span class="item-name">scaffold_mobile_auth</span>
+              <span class="item-name">scaffold_auth</span>
               <span class="badge badge-flow">idempotent</span>
             </li>
             <li class="item">
@@ -928,8 +928,8 @@
       </div>
     </div>
     <div class="api-note">
-      scaffold_mobile_auth adds token endpoints alongside cookie auth — the web app is untouched.
-      Idempotent: safe to call from both gova-ios and gova-android.
+      scaffold_auth emits cookie AND bearer (token) auth in one run — the web app already has both.
+      Idempotent: safe to re-run.
     </div>
   </div>
 
@@ -984,7 +984,7 @@
       <div class="step step-plan">
         <div class="step-num">03</div>
         <div class="step-title">Plan</div>
-        <div class="step-detail">scaffold_mobile_auth → models → screens → nav</div>
+        <div class="step-detail">models → screens → nav (bearer auth already in the manifest)</div>
         <span class="step-badge badge badge-ai">writing-plans</span>
       </div>
 

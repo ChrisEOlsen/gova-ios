@@ -97,7 +97,7 @@ PYEOF
     ok "gova-builder MCP configured → $CONTAINER_NAME"
     warn "gova-monolith's mcp container must be running (docker compose up -d in that repo) for /mcp to connect"
 else
-    warn "MCP skipped — scaffold_mobile_auth will not be available"
+    warn "MCP skipped — the gova-builder tools (inspect_app, scaffold_auth) will not be available"
     warn "Re-run install-claude.sh and enter gova-monolith's APP_NAME to enable it"
 fi
 
