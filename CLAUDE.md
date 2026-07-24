@@ -61,7 +61,7 @@ Before writing any Swift code, read the Generated Context block in `SEED.md` and
 If the Generated Context block is empty, STOP. Tell the developer to set `Web App Path`
 in SEED.md and run `/export:mobile` — it writes that section into SEED.md directly.
 
-### Step 2 — Extend the Go API for mobile auth (if auth is required)
+### Step 2 — Confirm mobile (bearer) auth is present (if auth is required)
 
 Web auth uses signed HMAC-SHA256 cookies — mobile cannot use these.
 Bearer token endpoints are already present if the web app was built with `scaffold_auth`
