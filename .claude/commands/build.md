@@ -48,7 +48,7 @@ Run `xcodegen generate` after editing.
 Use the `superpowers:brainstorming` skill with `SEED.md` as input.
 
 Confirm with the developer:
-- The complete list of screens to generate (one per model with a `list` endpoint in the Generated Context)
+- The screens each resource needs, driven by its endpoint kinds in the Generated Context (a `list` kind → a list screen; `detail` → a detail screen; `create`/`update`/`delete` → a create sheet / edit form / swipe-delete on those screens). A `scaffold_list` resource is list-only; a `scaffold_resource` resource is full CRUD.
 - Navigation flow: which screen is root, which push onto the stack
 - Whether authentication is required
 - Any iOS-specific UX notes beyond the CLAUDE.md defaults
@@ -64,7 +64,7 @@ Use the `superpowers:writing-plans` skill.
 **Mandatory plan order:**
 1. Swift model structs — one file per data model in Generated Context
 2. Auth screens: `LoginViewModel.swift` + `LoginView.swift` (if auth required)
-3. One task per resource screen in the Generated Context: ViewModel → View → `xcodegen generate`
+3. Per resource in the Generated Context: a ViewModel with one method per available endpoint kind, then its View(s) — a list View (with create sheet / swipe-delete if those kinds exist) and, if a `detail` kind exists, a detail View (with edit form / delete). Generate ONLY the operations the resource's endpoints expose (see the CLAUDE.md Step 4 kind→screen table). Run `xcodegen generate` after each file.
 4. Navigation wiring in `ContentView.swift`
 5. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
 

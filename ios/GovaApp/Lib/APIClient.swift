@@ -72,6 +72,19 @@ final class APIClient {
         }
     }
 
+    func put<T: Decodable>(path: String, body: some Encodable) async throws -> T {
+        let bodyData = try JSONEncoder().encode(body)
+        let request = makeRequest(path: path, method: "PUT", body: bodyData)
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            return try handle(data: data, response: response)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.network(error)
+        }
+    }
+
     func delete(path: String) async throws {
         let request = makeRequest(path: path, method: "DELETE")
         do {

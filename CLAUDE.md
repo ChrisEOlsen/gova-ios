@@ -27,8 +27,9 @@ after adding any Swift file, always run `xcodegen generate` inside `ios/` to upd
 > **Full CRUD (as of the monolith's Build 3b):** a resource scaffolded with
 > `scaffold_resource` exposes `list`, `detail`, `create`, `update`, and `delete`
 > endpoints (those `kind`s appear in the manifest). `/export:mobile` surfaces them
-> under the resource; a future `/build` update can generate detail/edit/delete
-> screens from them. (`scaffold_list` resources remain list-only.)
+> under the resource, and `/build` translates each kind into the matching SwiftUI
+> screen/action (list, detail, create sheet, edit form, swipe-delete). (`scaffold_list`
+> resources remain list-only.)
 
 ---
 
@@ -119,13 +120,30 @@ After writing the file, run:
 cd ios && xcodegen generate
 ```
 
-### Step 4 — Build screens (one per model with a `list` endpoint)
+### Step 4 — Build screens (per resource, driven by its endpoint kinds)
 
-Each screen becomes two files:
-- `ios/GovaApp/ViewModels/NameViewModel.swift` — owns all fetch logic and `@Published` state
-- `ios/GovaApp/Views/NameView.swift` — pure rendering, zero network calls
+For each resource in the Generated Context, generate exactly the screens and actions its
+endpoint **kinds** support — never invent an operation the manifest doesn't expose:
 
-Build the ViewModel first, then the View. After writing both files, run:
+| Endpoint kind (in Generated Context) | What to generate |
+|---|---|
+| `list` | A list screen — `List { ForEach(items) }`; `vm.load()` → `GET /api/v1/{plural}` → `[Model]` |
+| `detail` | A detail screen reached by tapping a list row — `vm.loadDetail(id)` → `GET /api/v1/{plural}/{id}` → `Model` |
+| `create` | A create `Form` in a `.sheet`, opened from a `+` toolbar button on the list — `vm.create(...)` → `POST /api/v1/{plural}` → then `vm.load()` |
+| `update` | An edit `Form` opened from the detail screen — `vm.update(id, ...)` → `PUT /api/v1/{plural}/{id}` (via `APIClient.shared.put`) → then reload |
+| `delete` | Swipe-to-delete on the list row (`.onDelete`) and/or a delete button on detail — `vm.delete(id)` → `DELETE /api/v1/{plural}/{id}` |
+
+A `scaffold_list` resource exposes only `list`, so it gets just a list screen. A
+`scaffold_resource` resource exposes all five, so it gets a list screen (with a create
+sheet and swipe-to-delete) plus a detail screen (with an edit form and delete). The
+resource's ViewModel owns only the methods whose endpoints exist.
+
+Each resource becomes:
+- `ios/GovaApp/ViewModels/NameViewModel.swift` — owns all fetch/mutation logic and `@Published` state (`items`, an optional `selected: Model?` if a `detail` endpoint exists, plus `isLoading`/`errorMessage`), one `async` method per available operation
+- `ios/GovaApp/Views/NameListView.swift` — the list (plus create sheet / swipe-delete when those kinds exist)
+- `ios/GovaApp/Views/NameDetailView.swift` — the detail screen (plus edit form / delete when those kinds exist), only if a `detail` endpoint exists
+
+Build the ViewModel first, then the View(s). After writing each file, run:
 ```bash
 cd ios && xcodegen generate
 ```
@@ -176,10 +194,13 @@ Check before reporting done:
 |---|---|
 | `loadList()` → fetch → `renderList()` | `vm.load()` → `@Published var items: [Model]` → `List { ForEach(items) }` |
 | `add_js_form` creation form | `.sheet(isPresented: $showCreate) { Form { TextField... Button("Save") } }` |
+| `detail` endpoint `GET /api/v1/x/{id}` | tap a row → `NavigationLink` → `DetailView`; `vm.loadDetail(id)` → `GET` → `Model` |
+| `update` endpoint `PUT /api/v1/x/{id}` | edit `Form` on the detail → `vm.update(id, body)` → `APIClient.shared.put(path:body:)` |
 | `del('/api/x/:id')` delete | `.onDelete { offsets in Task { await vm.delete(items[offsets.first!]) } }` |
 | `requireAuth()` at module top | `.onAppear { if !auth.isLoggedIn { showLogin = true } }` |
 | `api.js get(path)` | `try await APIClient.shared.get(path: path)` |
 | `api.js post(path, body)` | `try await APIClient.shared.post(path: path, body: body)` |
+| `api.js put(path, body)` | `try await APIClient.shared.put(path: path, body: body)` |
 | `api.js del(path)` | `try await APIClient.shared.delete(path: path)` |
 | `element.textContent = item.name` | `Text(item.name)` |
 | `res.error ?? 'Something went wrong.'` | `Text(errorMessage).foregroundStyle(.red)` |
@@ -215,6 +236,7 @@ Never overwrite them. Import and use them.
   never the envelope itself
 - `func get<T: Decodable>(path: String) async throws -> T`
 - `func post<T: Decodable>(path: String, body: some Encodable) async throws -> T`
+- `func put<T: Decodable>(path: String, body: some Encodable) async throws -> T`
 - `func delete(path: String) async throws`
 - Throws `APIError`: `.network(Error)`, `.decode(Error)`, `.server(statusCode: Int, message: String)`
 
