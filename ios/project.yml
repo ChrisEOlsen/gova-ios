@@ -30,11 +30,30 @@ targets:
           UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gova.GovaApp
+        # DEVELOPMENT_TEAM is written by /prep so it survives `xcodegen generate`.
+        # Blank builds fine for the simulator; set it for a physical-device build.
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_STYLE: Automatic
     scheme:
-      testTargets: []
+      testTargets:
+        - GovaAppUITests
+
+  GovaAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: GovaAppUITests
+    dependencies:
+      - target: GovaApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gova.GovaAppUITests
+        TEST_TARGET_NAME: GovaApp
 
 configs:
   Debug: debug

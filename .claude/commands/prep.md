@@ -52,7 +52,7 @@ Read the current `SEED.md` values first and offer them as defaults — never ask
 something already filled in with a real (non-placeholder) value; show it and ask only
 for confirmation.
 
-Ask for all four in **one** `AskUserQuestion` call where the answers are selectable,
+Ask for all five in **one** `AskUserQuestion` call where the answers are selectable,
 otherwise ask in plain text. Keep it to a single round-trip if possible.
 
 **1. App Name** — free text. Used as the home-screen name and to derive the bundle ID
@@ -72,14 +72,21 @@ IP or a tunnel URL.
 **4. Design Notes** — optional iOS-specific UX notes (tab bar vs. stack, dark mode,
 list style). Say it is optional and that CLAUDE.md defaults apply if skipped.
 
+**5. Apple Team ID** — *optional*. The 10-character Apple Developer Team ID used to
+sign device builds (Xcode ▸ Settings ▸ Accounts, or the current `DEVELOPMENT_TEAM`
+in `ios/project.yml`). Offer the current `project.yml` value if non-empty, and
+"Skip (simulator only)". Blank is fine — the simulator needs no team.
+
 ---
 
 ## Step 4 — Validate the answers
 
 - Web App Path resolves and passes the Step 2 validity test. If not, tell the developer
   exactly which of the three required paths is missing and ask again.
-- API Base URL parses as a URL with a scheme. Warn (do not block) if it is `http://`
-  and not localhost — iOS ATS blocks cleartext to non-local hosts unless configured.
+- API Base URL parses as a URL with a scheme. `http://` to a **local/LAN** host works
+  on device — the template ships an ATS `NSAllowsLocalNetworking` exception. Warn
+  (do not block) only if it is `http://` to a **non-local** host, which ATS still
+  blocks; recommend the `/launch` https tunnel for that case.
 - App Name is non-empty and its derived bundle slug is non-empty after stripping
   non-alphanumerics.
 
@@ -100,6 +107,16 @@ update the plist to match. `SEED.md` and `Config.plist` must never disagree — 
 reads the plist, so the plist is what actually ships.
 
 Do not run `xcodegen generate` here; no files were added.
+
+---
+
+## Step 6b — Set the signing team
+
+If the developer gave an Apple Team ID, write it into `ios/project.yml` as the
+`DEVELOPMENT_TEAM` value under `targets: GovaApp: settings: base:` (replace the
+empty string). This lives in `project.yml` so it survives `xcodegen generate`. If
+they skipped it, leave it empty — simulator builds do not need a team. Do not run
+`xcodegen generate` here; `/build` regenerates the project.
 
 ---
 
