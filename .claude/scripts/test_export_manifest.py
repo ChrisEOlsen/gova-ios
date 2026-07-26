@@ -17,6 +17,17 @@ SAMPLE = {
             {"name": "qty", "type": "int", "nullable": False},
             {"name": "created_at", "type": "timestamp", "nullable": False},
         ]},
+        {"name": "log_category", "table": "log_categories", "fields": [
+            {"name": "id", "type": "int", "nullable": False},
+            {"name": "title", "type": "string", "nullable": False},
+            {"name": "created_at", "type": "timestamp", "nullable": False},
+        ]},
+        {"name": "reminder", "table": "reminders", "fields": [
+            {"name": "id", "type": "int", "nullable": False},
+            {"name": "remind_at", "type": "string", "nullable": False, "format": "datetime-local"},
+            {"name": "category_id", "type": "int", "nullable": False, "references": "log_category"},
+            {"name": "created_at", "type": "timestamp", "nullable": False},
+        ]},
     ],
     "endpoints": [
         {"method": "GET", "path": "/api/v1/order_items", "handler": "OrderItemListGET",
@@ -27,6 +38,23 @@ SAMPLE = {
          "deps": ["read", "write", "cache"], "auth": False, "kind": "mobile_login"},
         {"method": "GET", "path": "/api/v1/auth/me_token", "handler": "MobileMeGET",
          "deps": ["read", "write", "cache"], "auth": False, "kind": "mobile_me"},
+        {"method": "GET", "path": "/api/v1/log_categories", "handler": "LogCategoryListGET",
+         "deps": ["read"], "auth": False, "model": "log_category", "kind": "list",
+         "response": {"shape": "list", "model": "log_category"}},
+        {"method": "GET", "path": "/api/v1/reminders", "handler": "ReminderListGET",
+         "deps": ["read"], "auth": False, "model": "reminder", "kind": "list",
+         "response": {"shape": "list", "model": "reminder"}},
+        {"method": "POST", "path": "/api/v1/reminders", "handler": "ReminderCreatePOST",
+         "deps": ["read"], "auth": False, "model": "reminder", "kind": "create",
+         "request": {"shape": "object", "fields": [
+             {"name": "remind_at", "type": "string", "nullable": False, "format": "datetime-local"},
+             {"name": "category_id", "type": "int", "nullable": False, "references": "log_category"}]},
+         "response": {"shape": "object", "model": "reminder"}},
+        {"method": "POST", "path": "/api/v1/reminders/{id}/snooze", "handler": "ReminderSnoozePOST",
+         "deps": ["read"], "auth": False, "kind": "custom",
+         "summary": "Snooze a reminder by N minutes",
+         "request": {"shape": "object", "fields": [{"name": "minutes", "type": "int", "nullable": False}]},
+         "response": {"shape": "object", "model": "reminder"}},
     ],
 }
 
@@ -91,7 +119,7 @@ class TestRenderContext(unittest.TestCase):
         self.assertIn("- GET /api/v1/auth/me_token  [mobile_me]", self.out)
 
     def test_screens_line(self):
-        self.assertIn("One list screen per model with a `list` endpoint: [order_item, project]", self.out)
+        self.assertIn("Top-level list screens (list endpoint, not a child): [log_category, order_item, project]", self.out)
         self.assertIn("Login screen: yes", self.out)
 
     def test_deterministic_regardless_of_input_order(self):
@@ -102,12 +130,56 @@ class TestRenderContext(unittest.TestCase):
         self.assertEqual(render_context(shuffled), self.out)
 
 
+class TestEnrichedContract(unittest.TestCase):
+    def setUp(self):
+        self.out = render_context(SAMPLE)
+
+    def test_format_hint_shown_on_field(self):
+        self.assertIn("[format: datetime-local]", self.out)
+
+    def test_reference_shown_on_field(self):
+        self.assertIn("[ref → log_category]", self.out)
+
+    def test_endpoint_shows_request_and_response(self):
+        self.assertIn("request: object{remind_at:datetime-local, category_id->log_category}", self.out)
+        self.assertIn("response: object(reminder)", self.out)
+
+    def test_relationships_section(self):
+        self.assertIn("#### Relationships", self.out)
+        self.assertIn("`reminder` is a child of `log_category` (via `category_id`)", self.out)
+
+    def test_custom_endpoints_section(self):
+        self.assertIn("#### Custom endpoints", self.out)
+        self.assertIn("POST /api/v1/reminders/{id}/snooze — Snooze a reminder by N minutes", self.out)
+        self.assertIn("attach: detail  control: form", self.out)
+
+    def test_top_level_excludes_child(self):
+        # reminder is a child (has a ref) so it is NOT a top-level screen; log_category and project are.
+        self.assertIn("Top-level list screens (list endpoint, not a child): [log_category, order_item, project]", self.out)
+
+    def test_nested_screen_listed(self):
+        self.assertIn("Nested: `reminder` list under `log_category` detail, filtered by `category_id`", self.out)
+
+    def test_custom_not_in_auth_section(self):
+        out = self.out
+        auth_start = out.index("#### Auth endpoints")
+        auth_end = out.index("#### Relationships")
+        auth_section = out[auth_start:auth_end]
+        self.assertNotIn("snooze", auth_section)
+        # still present in its own section:
+        custom_start = out.index("#### Custom endpoints")
+        self.assertIn("snooze", out[custom_start:])
+
+
 class TestRenderContextEmpty(unittest.TestCase):
     def test_empty_manifest(self):
         out = render_context({"api_version": "1.0.0", "hash": "sha256:0", "models": [], "endpoints": []})
         self.assertIn("- Bearer (mobile) auth ready: no", out)
-        self.assertIn("One list screen per model with a `list` endpoint: []", out)
+        self.assertIn("Top-level list screens (list endpoint, not a child): []", out)
         self.assertIn("Login screen: no", out)
+        self.assertIn("#### Relationships", out)
+        self.assertIn("  - (none)", out)
+        self.assertIn("#### Custom endpoints", out)
 
 
 SEED_WITH_MARKER = """# iOS App Specification

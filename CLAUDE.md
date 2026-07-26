@@ -54,7 +54,7 @@ next.
 ### Step 1 — Read the SEED.md Generated Context
 
 Before writing any Swift code, read the Generated Context block in `SEED.md` and confirm:
-- The list of screens (one per model with a `list` endpoint in the Generated Context)
+- The list of screens (from the `Screens to generate` section: one top-level screen per non-child model, plus a nested list per child and an action per custom endpoint)
 - Each screen's data model fields and their types
 - Which API endpoints each screen uses
 - Whether authentication is required
@@ -133,6 +133,26 @@ endpoint **kinds** support — never invent an operation the manifest doesn't ex
 | `update` | An edit `Form` opened from the detail screen — `vm.update(id, ...)` → `PUT /api/v1/{plural}/{id}` (via `APIClient.shared.put`) → then reload |
 | `delete` | Swipe-to-delete on the list row (`.onDelete`) and/or a delete button on detail — `vm.delete(id)` → `DELETE /api/v1/{plural}/{id}` |
 
+**Field format → control.** When a model/request field carries a `format` (shown in the Generated Context as `[format: X]`), use the matching SwiftUI control and write-format — do not render it as a plain `TextField`:
+
+| `format` | control | value sent to the API |
+|---|---|---|
+| `datetime-local` | `DatePicker(selection, displayedComponents: [.date, .hourAndMinute])` | `2026-07-27T11:45` — **no seconds, no `Z`** |
+| `date` | `DatePicker(selection, displayedComponents: .date)` | `2026-07-27` |
+| `time` | `DatePicker(selection, displayedComponents: .hourAndMinute)` | `11:45` |
+| `email` | `TextField(...).keyboardType(.emailAddress).textInputAutocapitalization(.never)` | the string |
+| `json` | `TextEditor` (monospaced) | the raw JSON string |
+
+A `datetime-local` field is distinct from a `timestamp` (`Date`) field: a `Date` decodes/encodes as RFC3339 via the pre-committed decoder, but a `datetime-local` is a `String` written **without** seconds or a trailing `Z`, or the web editor rejects it.
+
+**Child resources nest — no top-level tab.** The Generated Context's **Relationships** section lists each child (`` `child` is a child of `parent` (via `fk`) ``). A child resource does **not** get its own top-level list screen. Instead, render its list **inside the parent's detail screen**, loaded filtered by the foreign key: `GET /api/v1/{child_plural}?filter={fk}:{parentId}`. The child's create sheet (pre-filling `{fk}` = the parent id), swipe-delete, and edit form all live in that nested list. Only resources with **no** `references` field (the "Top-level list screens" line in Screens-to-generate) become tabs.
+
+**Custom endpoints become actions.** The **Custom endpoints** section lists each `kind:custom` endpoint with its `summary`, `request`/`response` schema, and an `attach` + `control` hint. Generate:
+- `control: button` (no request fields) → a button labeled from the summary that calls the endpoint and applies the response (reload the affected screen, or update the shown model from the response body).
+- `control: form` (request has fields) → a `.sheet` with one control per request field (honoring each field's `format`), submitting the body and applying the response. A form-bodied custom action must be `POST` or `PUT` — `APIClient.shared.get`/`delete` take no body, so a `GET`/`DELETE` custom endpoint that declares request fields cannot submit them; treat its inputs as query params or omit the form.
+- `attach: detail` (path has `{id}`) → place the control on the resource's detail screen; `attach: list` → on the list screen's toolbar.
+Use `APIClient.shared.{post|put|delete|get}` per the endpoint's method — never `URLSession`.
+
 A `scaffold_list` resource exposes only `list`, so it gets just a list screen. A
 `scaffold_resource` resource exposes all five, so it gets a list screen (with a create
 sheet and swipe-to-delete) plus a detail screen (with an edit form and delete). The
@@ -204,6 +224,11 @@ Check before reporting done:
 | `api.js del(path)` | `try await APIClient.shared.delete(path: path)` |
 | `element.textContent = item.name` | `Text(item.name)` |
 | `res.error ?? 'Something went wrong.'` | `Text(errorMessage).foregroundStyle(.red)` |
+| field `[format: datetime-local]` | `DatePicker([.date,.hourAndMinute])`; send `yyyy-MM-dd'T'HH:mm` (no seconds/Z) |
+| field `[format: date]` / `[time]` | `DatePicker(.date)` / `DatePicker(.hourAndMinute)` |
+| field `[format: email]` / `[json]` | `.keyboardType(.emailAddress)` / `TextEditor` |
+| field `[ref → parent]` (foreign key) | resource nests under `parent` detail; load `?filter={fk}:{parentId}`, no top-level tab |
+| `kind:custom` endpoint | an action (button/form per its `control`) on the `attach` screen; call via `APIClient.shared` |
 
 ---
 

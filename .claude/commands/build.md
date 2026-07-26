@@ -68,6 +68,13 @@ Use the `superpowers:writing-plans` skill.
 4. Navigation wiring in `ContentView.swift`
 5. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
 
+Drive screen generation from the Generated Context, not from a flat model list:
+- **Top-level screens:** one per name on the `Top-level list screens` line (child resources are intentionally absent).
+- **Nested children:** for each `Nested:` line, add the child's list (create/edit/delete) inside the parent's detail view, loaded with `?filter={fk}:{parentId}`.
+- **Custom actions:** for each `Custom action:` line, add the button/form (per its `control`) on the `attach` screen, wired through `APIClient.shared`.
+- **Form controls:** for every create/edit form field, pick the control from the field's `[format: …]` per the CLAUDE.md format table; plain fields fall back to type-based controls.
+Never generate an operation a resource's endpoint kinds don't expose.
+
 Note: bearer auth ships with the web app's `scaffold_auth` (cookie + bearer in one run), so
 `/build` scaffolds nothing auth-related here. If `/export:mobile`'s summary showed
 `bearer_auth=no`, the developer needs to run `scaffold_auth` in their gova-monolith project
