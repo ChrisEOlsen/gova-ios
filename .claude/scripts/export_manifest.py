@@ -98,7 +98,7 @@ def render_context(manifest: dict) -> str:
 
     lines.append("#### Auth endpoints")
     for e in endpoints:
-        if not e.get("model"):
+        if not e.get("model") and e.get("kind") != "custom":
             lines.append(f"  - {e['method']} {e['path']}  [{e.get('kind', '')}]")
     lines.append("")
 

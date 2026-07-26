@@ -160,6 +160,16 @@ class TestEnrichedContract(unittest.TestCase):
     def test_nested_screen_listed(self):
         self.assertIn("Nested: `reminder` list under `log_category` detail, filtered by `category_id`", self.out)
 
+    def test_custom_not_in_auth_section(self):
+        out = self.out
+        auth_start = out.index("#### Auth endpoints")
+        auth_end = out.index("#### Relationships")
+        auth_section = out[auth_start:auth_end]
+        self.assertNotIn("snooze", auth_section)
+        # still present in its own section:
+        custom_start = out.index("#### Custom endpoints")
+        self.assertIn("snooze", out[custom_start:])
+
 
 class TestRenderContextEmpty(unittest.TestCase):
     def test_empty_manifest(self):
