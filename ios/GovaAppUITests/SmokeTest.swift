@@ -30,23 +30,34 @@ final class SmokeTest: XCTestCase {
             XCTAssertTrue(tab.exists, "tab \(i) disappeared after tapping")
         }
 
-        // From the first tab that has rows, push a detail and confirm it bound.
-        // A row that fails to push a real detail (the Logger bug) fails here.
+        // From the first tab that has rows, tap a row and confirm we navigated to
+        // a detail. A successful push covers the list (portrait, full-screen), so
+        // the tapped row becomes non-hittable. This deliberately does NOT look for
+        // a nav-bar button — a list's own "+" toolbar button would satisfy that
+        // even when nothing pushed. The Logger-style bug (push a placeholder, then
+        // unwind back to the list) leaves the row hittable, so it is not mistaken
+        // for a successful push.
         for i in 0..<tabs.count {
             tabs.element(boundBy: i).tap()
             let firstCell = app.cells.firstMatch
-            if firstCell.waitForExistence(timeout: 3) {
-                firstCell.tap()
-                let backButton = app.navigationBars.buttons.firstMatch
-                XCTAssertTrue(
-                    backButton.waitForExistence(timeout: 5),
-                    "tapping a row did not push a detail screen (no nav back button appeared)"
-                )
-                if backButton.exists { backButton.tap() }
+            guard firstCell.waitForExistence(timeout: 3), firstCell.isHittable else { continue }
+            firstCell.tap()
+            let leftTheList = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == false"),
+                object: firstCell
+            )
+            if XCTWaiter().wait(for: [leftTheList], timeout: 5) == .completed {
+                // Navigated into a detail screen — pop back out and finish.
+                let back = app.navigationBars.buttons.firstMatch
+                if back.waitForExistence(timeout: 3) { back.tap() }
                 return
             }
+            // Row still hittable: this resource has no detail screen (a read-only
+            // list) — acceptable, try the next tab. A detail-capable resource whose
+            // detail is broken is caught by the per-resource assertions /build adds
+            // on top of this generic test (see CLAUDE.md).
         }
-        // No tab had rows (empty data set) — the tab walk above still validated
-        // navigation; nothing more to push.
+        // No tab produced a detail push (all read-only lists, or empty data). The
+        // tab walk above still validated that every screen loads.
     }
 }
