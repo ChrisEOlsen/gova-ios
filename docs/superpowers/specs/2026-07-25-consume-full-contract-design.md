@@ -107,8 +107,11 @@ detail; render custom actions; use the format mapping for form controls.
 - **Registration endpoint** stays as-is (auth is hand-implemented in the
   pre-committed `AuthManager`; mobile registration, if wanted, is a manual
   addition). This matches B-emit leaving auth/register endpoints schema-less.
-- No multi-parent nesting: a child with more than one `references` field nests
-  under its **first** referenced parent; deeper graphs are out of scope.
+- Multi-FK children nest under **every** referenced parent: a child with two
+  `references` fields (e.g. a join-table row) emits a Relationships/`Nested:` line
+  per FK and is reachable from each parent's detail. This is deterministic and
+  harmless; deeper/transitive relationship graphs (grandparent chains) remain out
+  of scope.
 - No offline/caching changes.
 
 ## Verification

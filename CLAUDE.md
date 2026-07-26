@@ -54,7 +54,7 @@ next.
 ### Step 1 — Read the SEED.md Generated Context
 
 Before writing any Swift code, read the Generated Context block in `SEED.md` and confirm:
-- The list of screens (one per model with a `list` endpoint in the Generated Context)
+- The list of screens (from the `Screens to generate` section: one top-level screen per non-child model, plus a nested list per child and an action per custom endpoint)
 - Each screen's data model fields and their types
 - Which API endpoints each screen uses
 - Whether authentication is required
@@ -149,7 +149,7 @@ A `datetime-local` field is distinct from a `timestamp` (`Date`) field: a `Date`
 
 **Custom endpoints become actions.** The **Custom endpoints** section lists each `kind:custom` endpoint with its `summary`, `request`/`response` schema, and an `attach` + `control` hint. Generate:
 - `control: button` (no request fields) → a button labeled from the summary that calls the endpoint and applies the response (reload the affected screen, or update the shown model from the response body).
-- `control: form` (request has fields) → a `.sheet` with one control per request field (honoring each field's `format`), submitting the body and applying the response.
+- `control: form` (request has fields) → a `.sheet` with one control per request field (honoring each field's `format`), submitting the body and applying the response. A form-bodied custom action must be `POST` or `PUT` — `APIClient.shared.get`/`delete` take no body, so a `GET`/`DELETE` custom endpoint that declares request fields cannot submit them; treat its inputs as query params or omit the form.
 - `attach: detail` (path has `{id}`) → place the control on the resource's detail screen; `attach: list` → on the list screen's toolbar.
 Use `APIClient.shared.{post|put|delete|get}` per the endpoint's method — never `URLSession`.
 
