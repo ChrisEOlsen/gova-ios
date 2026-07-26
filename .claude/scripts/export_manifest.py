@@ -24,6 +24,28 @@ def pascal(name: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in name.split("_") if part)
 
 
+def _field_desc(f: dict) -> str:
+    """Compact one-field descriptor for a schema: name plus its ref or format."""
+    s = f["name"]
+    if f.get("references"):
+        s += f"->{f['references']}"
+    elif f.get("format"):
+        s += f":{f['format']}"
+    return s
+
+
+def schema_str(schema: dict) -> str:
+    """Render a BodySchema compactly. 'object(reminder)' for a model-backed body,
+    'object{a, b:datetime-local}' for an inline-fields body, 'none' when absent."""
+    if not schema:
+        return "none"
+    shape = schema.get("shape", "")
+    if schema.get("model"):
+        return f"{shape}({schema['model']})"
+    fields = schema.get("fields") or []
+    return f"{shape}{{{', '.join(_field_desc(f) for f in fields)}}}"
+
+
 def render_context(manifest: dict) -> str:
     models = sorted(manifest.get("models") or [], key=lambda m: m["name"])
     endpoints = sorted(
@@ -52,7 +74,12 @@ def render_context(manifest: dict) -> str:
         lines.append(f"**{pascal(m['name'])}**  (table: {m['table']})")
         for f in m.get("fields", []):
             display = f["type"] + ("?" if f.get("nullable") else "")
-            lines.append(f"  - {f['name']}: {display} → {swift_type(f['type'], f.get('nullable', False))}")
+            extra = ""
+            if f.get("format"):
+                extra += f"  [format: {f['format']}]"
+            if f.get("references"):
+                extra += f"  [ref → {f['references']}]"
+            lines.append(f"  - {f['name']}: {display} → {swift_type(f['type'], f.get('nullable', False))}{extra}")
         lines.append("")
 
     lines.append("#### Resources → endpoints")
@@ -63,6 +90,10 @@ def render_context(manifest: dict) -> str:
         lines.append(f"**{m['name']}**")
         for e in m_eps:
             lines.append(f"  - {e['method']} {e['path']}  [{e.get('kind', '')}]  auth:{'yes' if e.get('auth') else 'no'}")
+            if e.get("request"):
+                lines.append(f"      request: {schema_str(e['request'])}")
+            if e.get("response"):
+                lines.append(f"      response: {schema_str(e['response'])}")
         lines.append("")
 
     lines.append("#### Auth endpoints")
@@ -71,8 +102,44 @@ def render_context(manifest: dict) -> str:
             lines.append(f"  - {e['method']} {e['path']}  [{e.get('kind', '')}]")
     lines.append("")
 
+    # Relationships: any field with a `references` makes its model a child.
+    rels = sorted(
+        (m["name"], f["references"], f["name"])
+        for m in models
+        for f in m.get("fields", [])
+        if f.get("references")
+    )
+    child_models = sorted({child for child, _parent, _fk in rels})
+
+    lines.append("#### Relationships")
+    if rels:
+        for child, parent, fk in rels:
+            lines.append(f"  - `{child}` is a child of `{parent}` (via `{fk}`) — nest its list under `{parent}` detail, filtered by `{fk}`")
+    else:
+        lines.append("  - (none)")
+    lines.append("")
+
+    custom = [e for e in endpoints if e.get("kind") == "custom"]
+    lines.append("#### Custom endpoints")
+    if custom:
+        for e in custom:  # endpoints are already sorted by (path, method)
+            attach = "detail" if "{id}" in e["path"] else "list"
+            control = "form" if (e.get("request") and e["request"].get("fields")) else "button"
+            lines.append(f"  - {e['method']} {e['path']} — {e.get('summary', '(no summary)')}")
+            lines.append(f"      request: {schema_str(e.get('request'))}  response: {schema_str(e.get('response'))}")
+            lines.append(f"      attach: {attach}  control: {control}")
+    else:
+        lines.append("  - (none)")
+    lines.append("")
+
+    top_level = [name for name in list_models if name not in child_models]
     lines.append("#### Screens to generate")
-    lines.append(f"  - One list screen per model with a `list` endpoint: [{', '.join(list_models)}]")
+    lines.append(f"  - Top-level list screens (list endpoint, not a child): [{', '.join(top_level)}]")
+    for child, parent, fk in rels:
+        lines.append(f"  - Nested: `{child}` list under `{parent}` detail, filtered by `{fk}`")
+    for e in custom:
+        attach = "detail" if "{id}" in e["path"] else "list"
+        lines.append(f"  - Custom action: {e['method']} {e['path']} on {attach}")
     lines.append(f"  - Login screen: {'yes' if bearer_ready else 'no'}")
 
     return "\n".join(lines)
