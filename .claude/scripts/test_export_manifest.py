@@ -167,6 +167,9 @@ class TestRenderContextEmpty(unittest.TestCase):
         self.assertIn("- Bearer (mobile) auth ready: no", out)
         self.assertIn("Top-level list screens (list endpoint, not a child): []", out)
         self.assertIn("Login screen: no", out)
+        self.assertIn("#### Relationships", out)
+        self.assertIn("  - (none)", out)
+        self.assertIn("#### Custom endpoints", out)
 
 
 SEED_WITH_MARKER = """# iOS App Specification
