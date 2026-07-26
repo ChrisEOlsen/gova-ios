@@ -208,6 +208,43 @@ Check before reporting done:
 
 ---
 
+### Verification — UI smoke test
+
+The template ships `ios/GovaAppUITests/SmokeTest.swift`, a generic XCUITest that
+launches the app, taps every tab, and asserts that tapping a list row pushes a
+detail screen. It is app-agnostic — keep it building and green. Running it (Xcode
+▸ Test, or `xcodebuild test`) is the way to catch **navigation-binding** bugs that
+unit tests, a successful build, and greps cannot see (e.g. a `navigationDestination`
+that never binds, so a row taps into a blank and unwinds).
+
+The generic test only *opportunistically* exercises a detail — it detects a
+successful push by the tapped row becoming non-hittable, and it gracefully skips a
+resource whose list turns out to be read-only. By itself it cannot guarantee
+catching a broken detail on a resource that **is** supposed to have one. **For each
+resource with a `detail` endpoint, add a UI assertion in `GovaAppUITests` that
+tapping its row opens a detail showing its data**: tap a seeded/first row of that
+resource and assert its detail content appears (a known field label, or the detail
+root's `accessibilityIdentifier`), then pop. This is a requirement, not an optional
+extra — it is what actually proves that specific resource's detail binds correctly,
+which the generic test cannot promise on its own.
+
+When generating screens, give each `TabView` item, each list row, and each detail
+screen's root view a stable `.accessibilityIdentifier` (e.g. the resource name, or
+`"{resource}-detail"`). The generic smoke test works without them, but the
+per-resource detail assertions required above need them to target the right
+elements.
+
+### Device deploy
+
+- **LAN http works on device by default** — `project.yml` ships an ATS
+  `NSAllowsLocalNetworking` exception, so a physical iPhone can reach a dev server
+  at `http://<LAN-IP>:8080`. (A non-local http host still needs the `/launch`
+  https tunnel.)
+- **Signing:** set `DEVELOPMENT_TEAM` (your Apple Team ID) — `/prep` writes it into
+  `project.yml` so it survives `xcodegen generate`. Blank is fine for the simulator.
+
+---
+
 ## Web-to-iOS Pattern Mapping
 
 | Web app resource (from the manifest) | iOS (SwiftUI equivalent) |
