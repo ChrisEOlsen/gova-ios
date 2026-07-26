@@ -42,8 +42,13 @@ Launch the app, then:
   — then return.
 - Assert the tab bar has ≥1 tab; tap **each** tab button and assert it responds.
 - Find the first tab that has list rows; tap the first cell and assert a **detail
-  pushed** — a back button appears in the nav bar — then pop. This is the Logger
-  assertion: a row that fails to push a bound detail fails here.
+  pushed** — detected by the tapped **row becoming non-hittable** (a portrait
+  full-screen push covers the list; a nav-bar-button check is avoided because a
+  list's own `+` toolbar button would false-pass it) — then pop. This is the Logger
+  assertion: a row that pushes then unwinds leaves the row hittable and is caught.
+  Limitation: a detail that itself contains cells can keep `cells.firstMatch`
+  resolving to a hittable cell, so the generic test may skip it as read-only —
+  which is why `/build` must add a per-resource detail assertion (see CLAUDE.md).
 
 It uses only native accessibility queries, so it needs no app-specific identifiers.
 It degrades gracefully on an auth-gated or single-screen app rather than failing
