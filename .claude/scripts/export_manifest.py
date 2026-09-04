@@ -55,7 +55,6 @@ def render_context(manifest: dict) -> str:
     api_version = manifest.get("api_version", "")
     hash_ = manifest.get("hash", "")
 
-    bearer_ready = any(e.get("kind") == "mobile_login" for e in endpoints)
     list_models = sorted(
         {e["model"] for e in endpoints if e.get("kind") == "list" and e.get("model")}
     )
@@ -66,7 +65,6 @@ def render_context(manifest: dict) -> str:
     lines.append("")
     lines.append("#### API")
     lines.append(f"- api_version: {api_version}")
-    lines.append(f"- Bearer (mobile) auth ready: {'yes' if bearer_ready else 'no'}")
     lines.append("")
 
     lines.append("#### Models")
@@ -140,7 +138,7 @@ def render_context(manifest: dict) -> str:
     for e in custom:
         attach = "detail" if "{id}" in e["path"] else "list"
         lines.append(f"  - Custom action: {e['method']} {e['path']} on {attach}")
-    lines.append(f"  - Login screen: {'yes' if bearer_ready else 'no'}")
+    lines.append("  - Login screen: yes (bearer auth ships with the web app)")
 
     return "\n".join(lines)
 
@@ -182,8 +180,7 @@ def main(argv=None) -> int:
 
     n_models = len(manifest.get("models") or [])
     n_endpoints = len(manifest.get("endpoints") or [])
-    bearer = any(e.get("kind") == "mobile_login" for e in (manifest.get("endpoints") or []))
-    print(f"models={n_models} endpoints={n_endpoints} bearer_auth={'yes' if bearer else 'no'}")
+    print(f"models={n_models} endpoints={n_endpoints}")
     return 0
 
 

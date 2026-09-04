@@ -41,7 +41,19 @@ targets:
         CODE_SIGN_STYLE: Automatic
     scheme:
       testTargets:
+        - GovaAppTests
         - GovaAppUITests
+
+  GovaAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: GovaAppTests
+    dependencies:
+      - target: GovaApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gova.GovaAppTests
 
   GovaAppUITests:
     type: bundle.ui-testing

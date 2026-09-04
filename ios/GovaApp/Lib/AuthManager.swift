@@ -7,6 +7,9 @@ struct UserInfo: Codable {
     let email: String
 }
 
+/// Owns the bearer token. The Keychain is the durable store; the in-memory copy
+/// is what `APIClient` reads on every request, so a request does not pay for a
+/// Keychain lookup.
 final class AuthManager: ObservableObject {
     static let shared = AuthManager()
 
@@ -14,60 +17,76 @@ final class AuthManager: ObservableObject {
     @Published private(set) var currentUser: UserInfo?
 
     private let keychainKey = "gova.auth.token"
+    private let lock = NSLock()
+    private var cachedToken: String?
 
     private init() {
-        isLoggedIn = readTokenFromKeychain() != nil
+        cachedToken = readTokenFromKeychain()
+        isLoggedIn = cachedToken != nil
     }
 
-    // nonisolated so APIClient can read the token from any thread/actor context
+    /// nonisolated so APIClient can read it from any thread or actor context.
     nonisolated var token: String? {
-        readTokenFromKeychain()
+        lock.lock()
+        defer { lock.unlock() }
+        return cachedToken
     }
 
     @MainActor
     func login(token: String, user: UserInfo) {
-        saveTokenToKeychain(token)
+        setToken(token)
         currentUser = user
         isLoggedIn = true
     }
 
     @MainActor
     func logout() {
-        deleteTokenFromKeychain()
+        setToken(nil)
         currentUser = nil
         isLoggedIn = false
     }
 
-    // MARK: - Keychain (thread-safe Security framework calls)
+    private func setToken(_ token: String?) {
+        lock.lock()
+        cachedToken = token
+        lock.unlock()
+
+        deleteTokenFromKeychain()
+        if let token {
+            saveTokenToKeychain(token)
+        }
+    }
+
+    // MARK: - Keychain
 
     private func readTokenFromKeychain() -> String? {
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
+            kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: keychainKey,
-            kSecReturnData as String:  true,
-            kSecMatchLimit as String:  kSecMatchLimitOne
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data
+        else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
     private func saveTokenToKeychain(_ token: String) {
-        deleteTokenFromKeychain()
         let query: [String: Any] = [
-            kSecClass as String:          kSecClassGenericPassword,
-            kSecAttrAccount as String:    keychainKey,
-            kSecValueData as String:      Data(token.utf8),
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: keychainKey,
+            kSecValueData as String: Data(token.utf8),
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemAdd(query as CFDictionary, nil)
     }
 
     private func deleteTokenFromKeychain() {
         let query: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
-            kSecAttrAccount as String: keychainKey
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: keychainKey,
         ]
         SecItemDelete(query as CFDictionary)
     }

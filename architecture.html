@@ -694,22 +694,22 @@
         </div>
 
         <div class="layer">
-          <div class="layer-title">MCP Builder Server</div>
+          <div class="layer-title">gova CLI</div>
           <ul class="item-list">
             <li class="item">
               <span class="item-icon">▸</span>
-              <span class="item-name">scaffold_list</span>
-              <span class="item-note">model + handler + JS</span>
+              <span class="item-name">gova resource</span>
+              <span class="item-note">model + CRUD + page</span>
             </li>
             <li class="item">
               <span class="item-icon">▸</span>
-              <span class="item-name">scaffold_auth</span>
-              <span class="item-note">cookie sessions</span>
+              <span class="item-name">gova handler</span>
+              <span class="item-note">custom endpoint</span>
             </li>
             <li class="item">
               <span class="item-icon">▸</span>
-              <span class="item-name">scaffold_auth</span>
-              <span class="badge badge-flow">idempotent</span>
+              <span class="item-name">auth</span>
+              <span class="badge badge-flow">ships built in</span>
             </li>
             <li class="item">
               <span class="item-icon">▸</span>
@@ -928,7 +928,7 @@
       </div>
     </div>
     <div class="api-note">
-      scaffold_auth emits cookie AND bearer (token) auth in one run — the web app already has both.
+      Auth ships with the web app template — cookie sessions and bearer tokens both, always present.
       Idempotent: safe to re-run.
     </div>
   </div>
@@ -943,7 +943,7 @@
       <div class="trans-cell web-cell"><span class="t-pattern">loadList()</span> → fetch → renderList()</div>
       <div class="trans-cell ios-cell"><span class="t-ios">vm.load()</span> → @Published var items → List { ForEach }</div>
 
-      <div class="trans-cell web-cell">add_js_form creation form</div>
+      <div class="trans-cell web-cell">gova resource create form</div>
       <div class="trans-cell ios-cell">.sheet(isPresented:) { Form { TextField... Button("Save") } }</div>
 
       <div class="trans-cell web-cell">del('/api/x/:id') delete button</div>
@@ -978,7 +978,7 @@
         <div class="step-num">02</div>
         <div class="step-title">Brainstorm</div>
         <div class="step-detail">Confirm screens, nav flow, auth requirement</div>
-        <span class="step-badge badge badge-ai">superpowers</span>
+        <span class="step-badge badge badge-ai">gova-brainstorm</span>
       </div>
 
       <div class="step step-plan">
@@ -991,7 +991,7 @@
       <div class="step step-branch">
         <div class="step-num">04</div>
         <div class="step-title">Branch</div>
-        <div class="step-detail">Isolated git worktree per build</div>
+        <div class="step-detail">Feature branch in the main checkout</div>
       </div>
 
       <div class="step step-implement">

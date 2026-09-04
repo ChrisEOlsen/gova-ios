@@ -17,13 +17,14 @@ ios/GovaApp/Info.plist
 .DS_Store?
 ._*
 
-# Claude — generated per-developer by install-claude.sh
-.mcp.json
+# Claude — generated per-developer
 .claude/settings.local.json
+
+# Build-execution scratch (task briefs, reports, review packages, ledger)
+.gova-build/
 
 # Personal notes
 HELP.md
-.superpowers/
 
 # Python (export transform test artifacts)
 __pycache__/

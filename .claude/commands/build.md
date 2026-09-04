@@ -1,145 +1,101 @@
 ---
-description: Translate a gova-monolith web app to a native iOS SwiftUI app
+description: Translate a gova-monolith web app into a native SwiftUI iOS app
 ---
 
-You are running the GOVA iOS build workflow. Read this file completely before taking any action.
+Run the GOVA iOS build workflow. Read this file completely before acting.
 
----
+## 1. Validate
 
-## Step 1: Validate
+Read `SEED.md`. Its Generated Context block must hold real models and endpoints,
+not the placeholder. If it is empty, STOP:
 
-Read `SEED.md`. Check that the Generated Context block is populated — it must contain
-screen definitions and API endpoints, not just the placeholder comment.
+> "SEED.md's Generated Context is empty. Run `/prep` — it collects the app name,
+> gova-monolith path and API base URL, then populates that section. Re-run
+> `/build` once it reports ready. (If SEED.md is already filled in,
+> `/export:mobile` alone is enough.)"
 
-If it is empty or contains only the placeholder, STOP and tell the developer:
+## 2. Set app identity
 
-> "The Generated Context section of SEED.md is empty. Run `/prep` — it collects the app
-> name, gova-monolith path and API base URL, then populates that section for you. Re-run
-> `/build` once it reports ready. (If SEED.md is already filled in, `/export:mobile` alone
-> is enough.)"
+This repo is a template: `ios/project.yml` ships the same placeholders every
+time. Skip this and every app you build gets bundle ID `com.gova.GovaApp` and
+the name `GovaApp` — they cannot coexist on a device or be registered separately
+in App Store Connect.
 
----
+Read `## App Name` from `SEED.md`. Derive `BundleSlug` — lowercase,
+alphanumeric only ("Task Manager" → `taskmanager`). In `ios/project.yml` set:
 
-## Step 2: Set App Identity
+- `PRODUCT_BUNDLE_IDENTIFIER` → `com.gova.{BundleSlug}`
+- `CFBundleDisplayName` → the app name, verbatim
 
-This repo is a template — every new app starts from a fresh clone, and `ios/project.yml`
-ships with the same placeholder values every time (`PRODUCT_BUNDLE_IDENTIFIER:
-com.gova.GovaApp`, `CFBundleDisplayName: GovaApp`). If you skip this step, every app
-you build from this template gets the same bundle ID and home-screen name — they
-can't coexist on one device, and they can't be registered as separate App IDs in
-App Store Connect.
+Leave the top-level `name:`, the target names, and the scheme alone — they are
+internal to this repo's tooling. Run `xcodegen generate` after editing.
 
-Read `## App Name` from `SEED.md`. Derive `BundleSlug` — lowercase, alphanumeric only,
-no spaces (e.g. "Task Manager" → `taskmanager`).
+## 3. Brainstorm
 
-Edit `ios/project.yml`:
-- `PRODUCT_BUNDLE_IDENTIFIER` → `com.gova.{BundleSlug}` (must be unique per app)
-- `CFBundleDisplayName` → the app name from SEED.md, verbatim
+Use the `gova-brainstorm` skill with `SEED.md` as input. Run its Scale Gate
+first and state the classification. Wait for approval before continuing.
 
-Leave the top-level `name:`, the `GovaApp` target, and the scheme name alone — they're
-internal to this repo's tooling and don't need to be unique across apps.
+## 4. Plan
 
-Run `xcodegen generate` after editing.
+Use the `gova-writing-plans` skill.
 
----
+**Screens come from endpoint kinds, never from a flat model list.** Read the
+Generated Context and follow `CLAUDE.md` § Step 4:
 
-## Step 3: Brainstorm
+- **Top-level screens:** one per name on the `Top-level list screens` line.
+  Child resources are deliberately absent from it.
+- **Nested children:** each `Nested:` line becomes a list inside the parent's
+  detail, loaded as `?filter={fk}:{parentId}`, with its own create sheet
+  (pre-filling the fk), edit form and swipe-delete.
+- **Custom actions:** each `Custom action:` line becomes a button or a form per
+  its `control`, on its `attach` screen, called through `APIClient.shared`.
+- **Form controls:** pick from each field's `[format: …]` per the CLAUDE.md
+  format table; plain fields fall back to type-based controls.
 
-Use the `superpowers:brainstorming` skill with `SEED.md` as input.
+**Never generate an operation a resource's endpoint kinds do not expose.**
 
-Confirm with the developer:
-- The screens each resource needs, driven by its endpoint kinds in the Generated Context (a `list` kind → a list screen; `detail` → a detail screen; `create`/`update`/`delete` → a create sheet / edit form / swipe-delete on those screens). A `scaffold_list` resource is list-only; a `scaffold_resource` resource is full CRUD.
-- Navigation flow: which screen is root, which push onto the stack
-- Whether authentication is required
-- Any iOS-specific UX notes beyond the CLAUDE.md defaults
+Task order: models → auth screens (if required) → per resource, ViewModel then
+View(s) → navigation wiring in `ContentView.swift`.
 
-Wait for developer approval before proceeding.
+## 5. Branch
 
----
+`git checkout -b build/<app-name>` in the main checkout. No worktrees.
 
-## Step 4: Write an Implementation Plan
+## 6. Implement
 
-Use the `superpowers:writing-plans` skill.
+Use `gova-build-execution`. It dispatches one implementer per task, **one at a
+time** — `xcodegen generate` rewrites a single project file, so concurrent
+implementers race for it.
 
-**Mandatory plan order:**
-1. Swift model structs — one file per data model in Generated Context
-2. Auth screens: `LoginViewModel.swift` + `LoginView.swift` (if auth required)
-3. Per resource in the Generated Context: a ViewModel with one method per available endpoint kind, then its View(s) — a list View (with create sheet / swipe-delete if those kinds exist) and, if a `detail` kind exists, a detail View (with edit form / delete). Generate ONLY the operations the resource's endpoints expose (see the CLAUDE.md Step 4 kind→screen table). Run `xcodegen generate` after each file.
-4. Navigation wiring in `ContentView.swift`
-5. Build verification: `xcodebuild -scheme GovaApp -sdk iphonesimulator build`
+Every subagent works under `CLAUDE.md` § Architecture Rules. Do not restate them
+in the dispatch; point at them.
 
-Drive screen generation from the Generated Context, not from a flat model list:
-- **Top-level screens:** one per name on the `Top-level list screens` line (child resources are intentionally absent).
-- **Nested children:** for each `Nested:` line, add the child's list (create/edit/delete) inside the parent's detail view, loaded with `?filter={fk}:{parentId}`.
-- **Custom actions:** for each `Custom action:` line, add the button/form (per its `control`) on the `attach` screen, wired through `APIClient.shared`.
-- **Form controls:** for every create/edit form field, pick the control from the field's `[format: …]` per the CLAUDE.md format table; plain fields fall back to type-based controls.
-Never generate an operation a resource's endpoint kinds don't expose.
+Auth ships with the web app, so nothing auth-related is scaffolded here — the
+bearer endpoints already exist.
 
-Note: bearer auth ships with the web app's `scaffold_auth` (cookie + bearer in one run), so
-`/build` scaffolds nothing auth-related here. If `/export:mobile`'s summary showed
-`bearer_auth=no`, the developer needs to run `scaffold_auth` in their gova-monolith project
-before this plan's auth screens have a token endpoint to call.
+## 7. Verify
 
-**Mandatory constraints for every task in the plan:**
-- Follow the CLAUDE.md translation guide before writing each screen
-- Run `xcodegen generate` inside `ios/` after adding every new Swift file
-- `APIClient.swift` and `AuthManager.swift` are pre-committed — never regenerate them
-- Every ViewModel must have `@Published var isLoading = false` and `@Published var errorMessage: String?`
-- Every View must display `errorMessage` when non-nil
+**No completion claim without fresh evidence.** Run each check, read the output,
+then state the result:
 
----
-
-## Step 5: Create Feature Branch
-
-Use `superpowers:using-git-worktrees` to create an isolated branch.
-Derive the branch name from the app name in SEED.md: "Task Manager" → `build/task-manager`
-
----
-
-## Step 6: Implement
-
-Use `superpowers:subagent-driven-development` to execute the plan.
-
-Each subagent must confirm before starting each screen task:
-> "According to CLAUDE.md, the ViewModel for this screen owns [list state],
-> calls [list API endpoints], and the View renders [describe UI elements]."
-
-After every new Swift file is written, the subagent must run:
-```bash
-cd ios && xcodegen generate
-```
-
----
-
-## Step 7: Verify
-
-Run:
 ```bash
 cd ios && xcodebuild -scheme GovaApp -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | tail -5
+  -destination 'platform=iOS Simulator,name=iPhone 16' test 2>&1 | tail -20
 ```
 
-Expected last line: `** BUILD SUCCEEDED **`
+- **Build and tests pass** — including the UI smoke test and the per-resource
+  detail assertions.
+- **Screens:** every screen in the Generated Context is implemented, and no
+  operation exists that its endpoint kinds do not expose.
+- **Every ViewModel** has `isLoading` and `errorMessage`; **every View** shows
+  the error when it is non-nil.
+- **Auth gate** wired if auth is required.
+- Grep to confirm, don't assume: no force unwraps in generated code, no raw
+  `URLSession`, no token in `UserDefaults`.
+- `xcodegen generate` was run after the last file was added.
 
-Then use `superpowers:verification-before-completion` and confirm:
-- All screens from SEED.md Generated Context are implemented
-- Every ViewModel has `isLoading` and `errorMessage` states
-- Every View displays an error when `errorMessage` is non-nil
-- No force unwraps (`!`) in generated code
-- No raw `URLSession` calls — always `APIClient.shared`
-- No tokens in `UserDefaults`
-- Auth gate wired if auth was required
-- `xcodegen generate` was run after the last file was added
+## 8. Report
 
----
-
-## Step 8: Done
-
-Report to the developer:
-
-> **Build complete.**
->
-> Open `ios/GovaApp.xcodeproj` in Xcode and run on the iOS Simulator.
-> Branch: `build/[app-name]`
->
-> Make sure your gova-monolith API is running and `Config.plist` points to the correct base URL.
+> **Build complete.** Open `ios/GovaApp.xcodeproj` and run on the simulator.
+> Branch: `build/<app-name>`.
+> Make sure the gova-monolith API is running and `Config.plist` points at it.

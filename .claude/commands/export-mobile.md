@@ -5,7 +5,7 @@ machine-readable API manifest. Run this from the gova-ios directory.
 
 This reads ONE file — the monolith's committed `src/app/api.json` (the manifest
 Build 2 publishes) — and transforms it deterministically. It does not parse Go or
-JS source, and requires no running server or MCP.
+JS source, and requires no running server.
 
 ---
 
@@ -28,11 +28,11 @@ Confirm `$WEB_APP/src/app/api.json` exists. If it does not, STOP and tell the
 developer:
 
 > "No manifest found at `$WEB_APP/src/app/api.json`. Build the web app first —
-> scaffold at least one resource in gova-monolith (e.g. `scaffold_list`) so the
-> manifest is populated — then run /export:mobile again."
+> scaffold at least one resource in gova-monolith with `./gova resource` — then
+> run /export:mobile again."
 
-If it exists but has empty `models` and `endpoints`, warn that there is nothing to
-translate yet (the developer has not scaffolded any resources), but continue.
+If its `models` list holds only `user` and its endpoints only the auth set, warn
+that the developer has not scaffolded any application resources yet, but continue.
 
 ---
 
@@ -69,8 +69,3 @@ Tell the developer the script's summary line, e.g.:
 
 > "`SEED.md` Generated Context populated — N models, N endpoints. Ready to run
 > `/build`."
-
-If the summary shows `bearer_auth=no`, add:
-
-> "Bearer (mobile) auth is not set up yet. In your gova-monolith project, run
-> `scaffold_auth` to add token endpoints, then re-run /export:mobile."

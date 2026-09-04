@@ -25,27 +25,6 @@ command -v xcodebuild >/dev/null 2>&1 || fail "xcodebuild not found — install 
 command -v xcodegen   >/dev/null 2>&1 || fail "xcodegen not found — install with: brew install xcodegen"
 ok "git, xcodebuild, xcodegen present"
 
-step "Registering superpowers plugin"
-python3 - <<'PYEOF'
-import json, os
-settings_path = os.path.expanduser("~/.claude/settings.json")
-try:
-    with open(settings_path) as f:
-        settings = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    settings = {}
-settings.setdefault("enabledPlugins", {})
-if "superpowers@claude-plugins-official" not in settings["enabledPlugins"]:
-    settings["enabledPlugins"]["superpowers@claude-plugins-official"] = True
-    print("  + superpowers@claude-plugins-official added")
-else:
-    print("  - superpowers already registered")
-with open(settings_path, "w") as f:
-    json.dump(settings, f, indent=2)
-    f.write("\n")
-PYEOF
-ok "~/.claude/settings.json updated"
-
 step "Setting API base URL"
 CONFIG_PLIST="$IOS_DIR/GovaApp/Config.plist"
 CURRENT_URL=$(python3 - "$CONFIG_PLIST" <<'PYEOF'
@@ -73,34 +52,6 @@ with open(path, 'wb') as f:
 PYEOF
 ok "API_BASE_URL set to: $API_URL"
 
-step "Configuring gova-builder MCP (optional)"
-printf "  gova-monolith APP_NAME, from its .env (press Enter to skip): "
-read -r GOVA_APP_NAME </dev/tty
-if [ -n "$GOVA_APP_NAME" ]; then
-    CONTAINER_NAME="${GOVA_APP_NAME}-mcp-1"
-    python3 - "$SCRIPT_DIR" "$CONTAINER_NAME" <<'PYEOF'
-import json, sys, os
-project_dir, container = sys.argv[1], sys.argv[2]
-config = {
-    "mcpServers": {
-        "gova-builder": {
-            "command": "docker",
-            "args": ["exec", "-i", container, "/usr/local/bin/mcp-server"]
-        }
-    }
-}
-with open(os.path.join(project_dir, ".mcp.json"), "w") as f:
-    json.dump(config, f, indent=2)
-    f.write("\n")
-print(f"  + .mcp.json → gova-builder via {container}")
-PYEOF
-    ok "gova-builder MCP configured → $CONTAINER_NAME"
-    warn "gova-monolith's mcp container must be running (docker compose up -d in that repo) for /mcp to connect"
-else
-    warn "MCP skipped — the gova-builder tools (inspect_app, scaffold_auth) will not be available"
-    warn "Re-run install-claude.sh and enter gova-monolith's APP_NAME to enable it"
-fi
-
 step "Generating Xcode project"
 cd "$IOS_DIR"
 xcodegen generate
@@ -111,7 +62,6 @@ echo "=================================="
 echo -e "${GREEN}${BOLD}Setup complete!${NC}"
 echo ""
 echo "  1. Open Claude Code in this directory: claude"
-echo "  2. Verify MCP tools: /mcp"
-echo "  3. Run: /prep   (asks what it needs, fills SEED.md, runs the export)"
-echo "  4. Start translating: /build"
+echo "  2. Run: /prep   (asks what it needs, fills SEED.md, runs the export)"
+echo "  3. Start translating: /build"
 echo ""

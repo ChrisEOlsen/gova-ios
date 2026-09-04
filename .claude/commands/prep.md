@@ -14,17 +14,14 @@ Read this file completely before taking any action. Do not write Swift code here
 Check that `./install-claude.sh` has already been run:
 
 - `ios/GovaApp/Config.plist` exists and has an `API_BASE_URL` key
-- `.mcp.json` contains a `gova-builder` server (if it is `{"mcpServers": {}}`, the MCP
-  step was skipped)
 
 If `Config.plist` is missing or has no `API_BASE_URL`, STOP:
 
 > "Run `./install-claude.sh` from the repo root first — it sets the API base URL and
 > generates the Xcode project. Then re-run `/prep`."
 
-If `.mcp.json` has no `gova-builder` entry, do NOT stop. Note it and carry on —
-`scaffold_auth` will be unavailable (it is monolith-side). `/export:mobile`
-reads the web app's `src/app/api.json` directly and does not need the MCP.
+`/export:mobile` reads the web app's `src/app/api.json` off disk — it needs no
+running server — it reads a committed file.
 
 ---
 
@@ -128,18 +125,7 @@ It reads the web app's API manifest (`$WEB_APP/src/app/api.json`) and writes the
 
 ---
 
-## Step 8 — Auth check
-
-The export prints `bearer_auth=yes` or `bearer_auth=no` in its summary.
-
-- `bearer_auth=yes` → mobile (Bearer token) auth is ready.
-- `bearer_auth=no` → the web app has no token endpoints yet. `/build` does not scaffold
-  auth itself — tell the developer to run `scaffold_auth` (it now includes bearer/mobile
-  auth) from their gova-monolith project in Claude Code before `/build`.
-
----
-
-## Step 9 — Report
+## Step 8 — Report
 
 Show the developer a summary and confirm readiness:
 
@@ -148,11 +134,9 @@ Show the developer a summary and confirm readiness:
 > - App Name: [name] → bundle `com.gova.[slug]`
 > - API Base URL: [url] (SEED.md + Config.plist in sync)
 > - Web App Path: [path]
-> - Exported: [N] models, [N] endpoints (bearer auth: [ready / not set up])
-> - Mobile auth: [ready / run scaffold_auth (it now includes bearer/mobile auth) first]
-> - gova-builder MCP: [connected / not configured]
+> - Exported: [N] models, [N] endpoints
 >
 > Run `/build` to translate the web app to iOS.
 
-If anything is unresolved (missing auth endpoints with no MCP, invalid path), lead with
-that blocker instead of the ready line.
+If anything is unresolved (an invalid path, an empty manifest), lead with that
+blocker instead of the ready line.

@@ -1,16 +1,8 @@
 import Foundation
 
-/// Compares two dotted numeric version strings ("1.2.0" vs "1.10"). Missing
-/// trailing components are treated as 0, so "1.2" == "1.2.0". Non-numeric
-/// components are treated as 0.
-///
-/// Cases this must get right (verified by reasoning, since there is no Swift
-/// test runner in this repo):
-///   compareSemver("1.0.0", "1.0.0") == .orderedSame
-///   compareSemver("1.0",   "1.0.0") == .orderedSame       (missing → 0)
-///   compareSemver("1.9.0", "1.10.0") == .orderedAscending (numeric, not lexical)
-///   compareSemver("2.0.0", "1.9.9") == .orderedDescending
-///   compareSemver("1.0.0", "1.0.1") == .orderedAscending
+/// Compares two dotted numeric version strings. Missing trailing components are
+/// treated as 0, so "1.2" == "1.2.0"; comparison is numeric, so "1.9" < "1.10".
+/// Non-numeric components are treated as 0. Covered by VersionGateTests.
 func compareSemver(_ a: String, _ b: String) -> ComparisonResult {
     let pa = a.split(separator: ".").map { Int($0) ?? 0 }
     let pb = b.split(separator: ".").map { Int($0) ?? 0 }

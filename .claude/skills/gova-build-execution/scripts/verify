@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# verify — regenerate the Xcode project, build, and run the test targets.
+#
+# The one verification path an implementer uses. xcodegen must run after any new
+# Swift file is added, or the file is not in the project and the build silently
+# ignores it.
+#
+# Usage: verify [--build-only]
+# Exit:  0 pass | 1 failure
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel)
+cd "$root/ios"
+
+DEST='platform=iOS Simulator,name=iPhone 16'
+
+echo "==> xcodegen generate"
+xcodegen generate >/dev/null
+
+echo "==> build"
+if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" build 2>&1 | tail -40; then
+  echo "BUILD FAILED" >&2
+  exit 1
+fi
+
+if [ "${1:-}" = "--build-only" ]; then
+  echo "verify passed (build only)"
+  exit 0
+fi
+
+echo "==> test"
+if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" test 2>&1 | tail -40; then
+  echo "TESTS FAILED" >&2
+  exit 1
+fi
+
+echo "verify passed (build + tests)"

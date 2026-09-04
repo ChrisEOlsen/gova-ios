@@ -1,29 +1,70 @@
 # gova-ios
 
-Template repo for translating a [gova-monolith](../gova-monolith) web app into a
-native SwiftUI iOS app. The Go backend and JSON API stay shared — this repo only
-builds the iOS client that talks to it.
+A template for turning a [gova-monolith](../gova-monolith) web app into a native
+iPhone app.
 
-## How it works
+## What it is
 
-1. Run `./install-claude.sh` once — sets `Config.plist`'s API base URL. (`/export:mobile` reads the web app's
-   committed `src/app/api.json` manifest directly — no MCP or running server needed;
-   auth, cookie + bearer, is scaffolded on the monolith side with `scaffold_auth`.)
-2. Run `/prep` — Claude asks for the app name, gova-monolith path, API base URL
-   and any design notes, writes them into `SEED.md`, then runs the export for you.
-   It reports when the repo is ready for `/build`.
-3. Run `/build` — Claude reads `SEED.md` and translates each web screen
-   into a SwiftUI View + ViewModel pair, wired into a working iOS app.
+You already built a web app with gova-monolith. The Go server and its JSON API
+stay exactly as they are — this repo builds only the iOS client that talks to
+them, so you describe your data once.
 
-`/export:mobile` can also be run on its own — it re-reads the linked gova-monolith
-repo and overwrites `SEED.md`'s Generated Context section in place. Use it whenever
-the web app changes, then re-run `/build`.
+It works by reading the web app's `api.json`: the models, their field types, and
+which operations each resource exposes. From that, the assistant writes one
+SwiftUI screen per resource, wired to the shared API.
 
-See `CLAUDE.md` for the full translation guide and architecture rules.
+Sign-in needs no setup here. Auth ships with the web app, so the token endpoints
+the iPhone app uses always exist.
 
-## Requirements
+## Getting started
 
-- Xcode
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) —
-  regenerates `ios/GovaApp.xcodeproj` from `ios/project.yml`
-- A running gova-monolith instance (`docker compose up -d` in that repo)
+You need Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+(`brew install xcodegen`).
+
+```bash
+./install-claude.sh          # sets the API URL, generates the Xcode project
+```
+
+Then:
+
+1. Run `/prep` — the assistant asks for your app name, where the web app lives,
+   and the API address, then reads the web app's data model
+2. Run `/build` — it writes the screens
+3. Open `ios/GovaApp.xcodeproj` and run
+
+Re-run `/export:mobile` any time the web app's API changes.
+
+## What's already written
+
+`ios/GovaApp/Lib/` is hand-written and shared. Use it; never regenerate it.
+
+| File | Does |
+|---|---|
+| `APIClient.swift` | every network call, with the response envelope unwrapped and the auth token attached |
+| `AuthManager.swift` | the login token, kept in the Keychain |
+| `VersionGate.swift` | at launch, asks the server whether this build is too old |
+| `UpdateRequiredView.swift` | the screen shown when it is |
+
+Everything else — models, view models, views — is generated per app.
+
+## The Xcode project is generated
+
+`GovaApp.xcodeproj` is built from `ios/project.yml` by XcodeGen and is not in
+git. **After adding any Swift file, run `xcodegen generate` inside `ios/`**, or
+the file is not in the project and the build ignores it.
+
+## Verify
+
+```bash
+cd ios && xcodebuild -scheme GovaApp -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 16' test
+```
+
+`GovaAppTests` holds unit tests. `GovaAppUITests` holds a smoke test that
+launches the app and taps through it; `/build` adds a check per screen on top,
+which is what actually proves each detail view works.
+
+## Reference
+
+- [`CLAUDE.md`](CLAUDE.md) — the rules the assistant works under
+- `../gova-monolith/docs/API-CONTRACT.md` — what the shared API guarantees

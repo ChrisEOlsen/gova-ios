@@ -7,8 +7,5 @@
       "Bash(swift build *)",
       "Bash(mkdir -p *)"
     ]
-  },
-  "enabledMcpjsonServers": [
-    "gova-builder"
-  ]
+  }
 }
