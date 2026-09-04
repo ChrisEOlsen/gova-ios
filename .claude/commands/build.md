@@ -32,8 +32,9 @@ internal to this repo's tooling. Run `xcodegen generate` after editing.
 
 ## 3. Brainstorm
 
-Use the `gova-brainstorm` skill with `SEED.md` as input. Run its Scale Gate
-first and state the classification. Wait for approval before continuing.
+Use the `gova-brainstorm` skill with `SEED.md` as input. Design every screen the
+Generated Context authorizes — building a subset and calling it done is the
+failure mode here. Wait for approval before continuing.
 
 ## 4. Plan
 

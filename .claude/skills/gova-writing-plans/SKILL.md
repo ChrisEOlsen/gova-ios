@@ -37,25 +37,26 @@ A customization step is well-specified when a competent implementer with the tas
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
-**Input:** on the Standard/Large path this is a committed spec under `docs/specs/`. On the Small path (see `gova-brainstorm` § Scale Gate) there is no spec file — the approved design is the conversation, and this plan is the only written artifact, so it carries the user review gate that the spec would otherwise hold. Ask the user to review the saved plan before invoking `gova-build-execution`.
+**Input:** on the Standard path this is a committed spec under `docs/specs/`. On the Small path there is no spec file — the approved design is the conversation, and this plan is the only written artifact, so it carries the user review gate that the spec would otherwise hold. Ask the user to review the saved plan before invoking `gova-build-execution`.
 
-## Scope Check
+## Cover the whole design
 
-If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+One plan covers every screen the approved design asks for. Do not split an app
+across several plans, and do not quietly leave a resource for "later".
 
 ## Plan Size
 
-The plan is a task list with contracts, not a second copy of the implementation. A single-feature plan is typically under 150 lines; a multi-feature build under 600. If a plan is running several times the length of its spec, you are pre-writing implementation code — go back to "Specify Contracts, Not Bodies" and cut it. Length is a symptom, not a target: do not pad a short plan, and do not truncate a genuinely large one.
+The plan is a task list with contracts, not a second copy of the implementation. A single-screen plan is typically under 150 lines; a whole app, several hundred. If a plan is running several times the length of its spec, you are pre-writing implementation code — go back to "Specify Contracts, Not Bodies" and cut it. Length is a symptom, not a target: do not pad a short plan, and never drop a screen to hit a length.
 
 ## File Structure
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+Before defining tasks, map out which files will be created or modified and what each one is responsible for.
 
 - Design units with clear boundaries: model files, handler files, JS modules, one per feature.
 - Files that change together should live together. Split by feature, not by technical layer.
 - In existing codebases, follow established patterns (`inspect_app`). If a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+This structure informs how you split the work into tasks. Each task should produce self-contained changes that make sense independently.
 
 Tasks run one at a time here (`xcodegen generate` rewrites a single project
 file), so they need not be file-disjoint — but a task that touches
@@ -63,7 +64,9 @@ file), so they need not be file-disjoint — but a task that touches
 
 ## Task Right-Sizing
 
-A task is the smallest unit that carries its own verification cycle and is worth a fresh reviewer's gate. One resource — its model, its ViewModel and its View(s) — is usually one task. Split only where a reviewer could meaningfully reject one task while approving its neighbor. Each task ends with something verifiable: the app builds, the screen renders, the row opens its detail.
+A task is one implementer's assignment and one reviewer's gate. One resource — its model, its ViewModel and its View(s) — is usually one task.
+
+Beyond that, size tasks by your own read of the work. There is no line count and no complexity rubric: a task ends with something verifiable — the app builds, the screen renders, the row opens its detail — and that is the only rule.
 
 ## Bite-Sized Task Granularity
 

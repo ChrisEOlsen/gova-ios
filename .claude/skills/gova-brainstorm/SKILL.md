@@ -1,6 +1,6 @@
 ---
 name: gova-brainstorm
-description: Use before writing an implementation plan for a GOVA iOS build — classifies the scale of the work, then turns SEED.md's Generated Context into an approved screen design through batched collaborative dialogue.
+description: Use before writing an implementation plan for a GOVA iOS build — turns SEED.md's Generated Context into an approved screen design through batched collaborative dialogue.
 ---
 
 # Brainstorming Ideas Into Designs
@@ -13,29 +13,29 @@ Start by understanding the current project context, classify the scale of the wo
 Do NOT invoke any implementation skill or write any Swift until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
 
-## Scale Gate — Run This First
+## Does this need a spec document?
 
-Before asking anything, classify the work. This decides which path you take, and it is the difference between a 6-round-trip design cycle and a 2-round-trip one.
+One decision, made before you ask anything. It is about paperwork, not about how
+much of the app you build — **build every screen the manifest authorizes, in one
+pass.** How to break that into tasks is your judgement, not a rubric's.
 
-**Small** — one screen, one model, a navigation fix, or a change confined to existing code. No new subsystem.
+**Small** — one screen, one model, a navigation fix, or a change confined to existing code.
 → **Skip the spec document.** Use plan mode for the dialogue (Claude Code's plan mode, or opencode's `plan` agent) — it is harness-enforced read-only, so the HARD-GATE holds mechanically rather than on your promise. Batch your questions, get the approach approved, then invoke `gova-writing-plans` for a short plan. Do not write to `docs/specs/`.
 
-**Standard** — a resource needing its own list, detail and forms; or two or more screens that interact.
+**Standard** — anything else: a resource with its own list, detail and forms;
+several screens that interact; a whole app from a fresh Generated Context.
 → Full path below: questions → approaches → design → spec doc → plan.
 
-**Large** — many resources, or several interacting subsystems.
-→ Decompose first. Each sub-project gets its own spec → plan → implementation cycle. Brainstorm the first sub-project through the Standard path.
+When in doubt take Small. A short plan that turns out to need a spec costs one extra round-trip; a full spec for a 100-line change costs six.
 
-If the work sits between Small and Standard, take Small. A short plan that turns out to need a spec costs one extra round-trip; a full spec for a 100-line change costs six.
-
-The HARD-GATE binds every path: no Swift until the user approves the design (Standard/Large) or the plan (Small).
+The HARD-GATE binds both paths: no Swift until the user approves the design (Standard) or the plan (Small).
 
 ## Checklist
 
 You MUST create a task for each of these items and complete them in order. Items marked **[Standard+]** are skipped on the Small path.
 
 1. **Explore project context** — read `SEED.md` including its Generated Context, check `docs/specs/` and `docs/plans/` history, check recent commits
-2. **Classify scale** — Small, Standard, or Large, per the Scale Gate above. State which one you picked and why, in one line.
+2. **Decide on a spec document** — Small or Standard, per the section above. State which and why, in one line.
 3. **Ask clarifying questions** — batched, not serial (see below); understand purpose/constraints/success criteria
 4. **[Standard+] Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval
@@ -51,9 +51,10 @@ You MUST create a task for each of these items and complete them in order. Items
 **Understanding the idea:**
 
 - Check out the current project state first (`SEED.md`, docs, recent commits)
-- Before asking detailed questions, assess scope: if `SEED.md` describes multiple independent subsystems, flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
-- For appropriately-scoped projects, ask questions in **batches**, not one per message. Use the harness's batched-question tool (`AskUserQuestion` in Claude Code, `question` in opencode) — it takes several questions per call, each with a few options and optional multi-select. One call that resolves four decisions beats four calls that resolve one each; serial questioning is pure latency and is the single largest avoidable cost in this phase.
+- A Generated Context with many resources is not a reason to build fewer of
+  them. Design them all. If it is genuinely enormous, say so and ask the
+  developer what to cut — do not decide unilaterally to deliver a fraction.
+- Ask questions in **batches**, not one per message. Use the harness's batched-question tool (`AskUserQuestion` in Claude Code, `question` in opencode) — it takes several questions per call, each with a few options and optional multi-select. One call that resolves four decisions beats four calls that resolve one each; serial questioning is pure latency and is the single largest avoidable cost in this phase.
 - Group a batch by theme so the answers are independently meaningful — data model in one batch, auth and integrations in the next. Do not batch a question whose options depend on the answer to another question in the same batch; that one waits for the following round.
 - Prefer multiple choice when possible, but open-ended is fine — put it in the same batch as a plain question.
 - Two batches is a normal budget for a Standard project, one for a Small one. If you are reaching for a third, you are designing by interview instead of proposing something concrete and letting the user correct it.
@@ -100,8 +101,7 @@ After writing the spec document, look at it with fresh eyes:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the data model match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+3. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
@@ -119,7 +119,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 
 ## Key Principles
 
-- **Scale the ceremony to the change** - The Scale Gate is the first decision, not an afterthought
+- **Scale the paperwork to the change, never the scope** - build all of what was asked
 - **Batch questions** - `AskUserQuestion` (Claude Code) or `question` (opencode), several at a time; never one question per message
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
