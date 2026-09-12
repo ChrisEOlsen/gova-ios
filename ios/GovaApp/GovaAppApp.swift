@@ -16,10 +16,15 @@ struct GovaAppApp: App {
                 }
             }
             .task {
-                await versionGate.check()
-                // A Keychain token only proves one was saved. Validate it before
-                // the app renders signed-in screens.
-                await auth.restoreSession()
+                // Concurrently, not serially: these are unrelated, and a hung
+                // _version (60s default timeout) would otherwise hold session
+                // restore — and the whole UI — behind it.
+                //
+                // restoreSession is what clears auth.isRestoring, so it must run
+                // at every launch. Do not drop it.
+                async let version: Void = versionGate.check()
+                async let session: Void = auth.restoreSession()
+                _ = await (version, session)
             }
         }
     }

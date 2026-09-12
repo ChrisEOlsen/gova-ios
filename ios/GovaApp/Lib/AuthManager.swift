@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Security
 
 struct UserInfo: Codable {
@@ -30,14 +31,27 @@ final class AuthManager: ObservableObject {
     @Published private(set) var isLoggedIn: Bool = false
     @Published private(set) var currentUser: UserInfo?
 
+    /// True from launch until `restoreSession()` has settled, when a token was
+    /// found in the Keychain. Without it the app renders signed-in screens on the
+    /// strength of a token that may be dead, and a user with an expired one sees
+    /// a flash of the app, a burst of failing requests, then the login screen.
+    /// The root view shows a splash while this is true.
+    @Published private(set) var isRestoring: Bool = false
+
     private let keychainService = "com.gova.auth"
     private let keychainKey = "gova.auth.token"
     private let lock = NSLock()
     private var cachedToken: String?
 
+    private let log = Logger(subsystem: "com.gova.auth", category: "keychain")
+
     private init() {
         cachedToken = readTokenFromKeychain()
         isLoggedIn = cachedToken != nil
+        // Set here rather than inside restoreSession so there is no window in
+        // which a stale session looks live. GovaAppApp always calls
+        // restoreSession at launch, which is what clears it.
+        isRestoring = cachedToken != nil
     }
 
     /// nonisolated so APIClient can read it from any thread or actor context.
@@ -58,6 +72,7 @@ final class AuthManager: ObservableObject {
     /// session.
     @MainActor
     func restoreSession() async {
+        defer { isRestoring = false }
         guard token != nil else { return }
         do {
             currentUser = try await APIClient.shared.get(path: "/api/v1/auth/me_token")
@@ -122,14 +137,14 @@ final class AuthManager: ObservableObject {
         if status != errSecSuccess {
             // The in-memory token still works for this launch; only persistence
             // failed, so the next launch lands on the login screen.
-            print("AuthManager: could not persist the token to the Keychain (OSStatus \(status))")
+            log.error("could not persist the token to the Keychain (OSStatus \(status))")
         }
     }
 
     private func deleteTokenFromKeychain() {
         let status = SecItemDelete(baseQuery() as CFDictionary)
         if status != errSecSuccess && status != errSecItemNotFound {
-            print("AuthManager: could not remove the token from the Keychain (OSStatus \(status))")
+            log.error("could not remove the token from the Keychain (OSStatus \(status))")
         }
     }
 }
