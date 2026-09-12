@@ -4,8 +4,12 @@
       "Bash(git *)",
       "Bash(xcodebuild *)",
       "Bash(xcodegen *)",
-      "Bash(swift build *)",
-      "Bash(mkdir -p *)"
+      "Bash(mkdir -p *)",
+      "Bash(python3 .claude/scripts/export_manifest.py *)",
+      "Bash(.claude/skills/gova-build-execution/scripts/verify *)",
+      "Bash(.claude/skills/gova-build-execution/scripts/task-brief *)",
+      "Bash(.claude/skills/gova-build-execution/scripts/review-package *)",
+      "Bash(.claude/skills/gova-build-execution/scripts/sdd-workspace *)"
     ]
   }
 }

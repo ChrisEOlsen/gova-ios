@@ -6,32 +6,72 @@
 # ignores it.
 #
 # Usage: verify [--build-only]
+#        GOVA_SIM="iPhone 17 Pro" verify     # pin a specific simulator
 # Exit:  0 pass | 1 failure
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
 cd "$root/ios"
 
-DEST='platform=iOS Simulator,name=iPhone 16'
+# Pick a simulator that this machine actually has. A hardcoded device name is
+# the most common reason this script fails on a fresh checkout: Xcode ships a
+# different default set every year, and a machine may have none installed.
+if [ -n "${GOVA_SIM:-}" ]; then
+  sim=$GOVA_SIM
+else
+  sim=$(xcrun simctl list devices available 2>/dev/null |
+    awk '/^[[:space:]]+iPhone/ { sub(/^[[:space:]]+/, ""); sub(/ \(.*/, ""); print; exit }')
+fi
+
+if [ -z "$sim" ]; then
+  echo "No iPhone simulator is available." >&2
+  echo "Install one in Xcode ▸ Settings ▸ Components, or set GOVA_SIM to a device you have." >&2
+  echo "Installed devices:" >&2
+  xcrun simctl list devices available >&2 || true
+  exit 1
+fi
+
+DEST="platform=iOS Simulator,name=$sim"
+echo "==> simulator: $sim"
+
+# Full output goes to a log; the console gets a summary. Piping xcodebuild
+# straight into `tail` throws away the part that says which test bundles ran,
+# which makes a partial run look like a complete one.
+tmpdir=${TMPDIR:-/tmp}
+log=$(mktemp "${tmpdir%/}/gova-verify-XXXXXX")   # template must END in X's
 
 echo "==> xcodegen generate"
 xcodegen generate >/dev/null
 
 echo "==> build"
-if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" build 2>&1 | tail -40; then
-  echo "BUILD FAILED" >&2
+if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" build >"$log" 2>&1; then
+  tail -40 "$log" >&2
+  echo "BUILD FAILED — full log: $log" >&2
   exit 1
 fi
+echo "build ok"
 
 if [ "${1:-}" = "--build-only" ]; then
-  echo "verify passed (build only)"
+  echo "verify passed (build only) — log: $log"
   exit 0
 fi
 
 echo "==> test"
-if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" test 2>&1 | tail -40; then
-  echo "TESTS FAILED" >&2
+if ! xcodebuild -scheme GovaApp -sdk iphonesimulator -destination "$DEST" test >"$log" 2>&1; then
+  tail -40 "$log" >&2
+  echo "TESTS FAILED — full log: $log" >&2
+  # A long-lived CoreSimulator service drifts into a state where every app
+  # launch is refused. It reads like a code failure and is not one.
+  if grep -q "preflight checks" "$log"; then
+    echo >&2
+    echo "This one is the simulator, not your code. Reset it and re-run:" >&2
+    echo "  killall -9 com.apple.CoreSimulator.CoreSimulatorService && xcrun simctl erase all" >&2
+  fi
   exit 1
 fi
 
-echo "verify passed (build + tests)"
+# One line per bundle, so a bundle that never ran is visible rather than
+# implied. Both GovaAppTests and GovaAppUITests must appear.
+grep -E "^Test Suite '.+\.xctest'" -A1 "$log" | grep -Ev "^--$" || true
+
+echo "verify passed (build + tests) — log: $log"

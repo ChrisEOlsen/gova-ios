@@ -54,6 +54,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gova.GovaAppTests
+        # A test bundle is code-signed like any other, so it needs an
+        # Info.plist. Without this the target cannot build at all.
+        GENERATE_INFOPLIST_FILE: YES
 
   GovaAppUITests:
     type: bundle.ui-testing
@@ -66,6 +69,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gova.GovaAppUITests
         TEST_TARGET_NAME: GovaApp
+        GENERATE_INFOPLIST_FILE: YES
 
 configs:
   Debug: debug

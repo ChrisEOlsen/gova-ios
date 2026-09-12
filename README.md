@@ -56,9 +56,12 @@ the file is not in the project and the build ignores it.
 ## Verify
 
 ```bash
-cd ios && xcodebuild -scheme GovaApp -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' test
+.claude/skills/gova-build-execution/scripts/verify
 ```
+
+It regenerates the project, builds, and runs both test targets against the
+first iPhone simulator installed on the machine (`GOVA_SIM="iPhone 17 Pro"`
+pins a different one).
 
 `GovaAppTests` holds unit tests. `GovaAppUITests` holds a smoke test that
 launches the app and taps through it; `/build` adds a check per screen on top,

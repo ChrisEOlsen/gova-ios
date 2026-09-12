@@ -21,13 +21,21 @@ final class SmokeTest: XCTestCase {
             return
         }
 
-        // Every tab must be tappable and respond.
+        // Every tab must be tappable and actually respond. `exists` is true
+        // whether or not the tap did anything, so selection is the assertion
+        // that has teeth.
+        //
+        // With more than five resources SwiftUI shows four tabs plus "More",
+        // and the rest live in a list behind it — this test reaches only the
+        // visible five. The per-resource assertions /build adds are what cover
+        // the others (see CLAUDE.md § Verification).
         let tabs = tabBar.buttons
         XCTAssertGreaterThan(tabs.count, 0, "tab bar has no tabs")
         for i in 0..<tabs.count {
             let tab = tabs.element(boundBy: i)
+            let label = tab.label
             tab.tap()
-            XCTAssertTrue(tab.exists, "tab \(i) disappeared after tapping")
+            XCTAssertTrue(tab.isSelected, "tab \(label) did not select when tapped")
         }
 
         // From the first tab that has rows, tap a row and confirm we navigated to
