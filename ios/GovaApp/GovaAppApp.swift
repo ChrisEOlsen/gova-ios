@@ -15,7 +15,12 @@ struct GovaAppApp: App {
                         .environmentObject(auth)
                 }
             }
-            .task { await versionGate.check() }
+            .task {
+                await versionGate.check()
+                // A Keychain token only proves one was saved. Validate it before
+                // the app renders signed-in screens.
+                await auth.restoreSession()
+            }
         }
     }
 }

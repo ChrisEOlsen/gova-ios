@@ -7,6 +7,20 @@ struct UserInfo: Codable {
     let email: String
 }
 
+/// The `POST /api/v1/auth/login_token` response. Fixed by
+/// docs/API-CONTRACT.md § Authentication — `{ "token", "user" }` — so it lives
+/// here rather than being re-declared per app.
+struct LoginResponse: Codable {
+    let token: String
+    let user: UserInfo
+}
+
+/// The credentials `login_token` and `register` take.
+struct LoginRequest: Encodable {
+    let email: String
+    let password: String
+}
+
 /// Owns the bearer token. The Keychain is the durable store; the in-memory copy
 /// is what `APIClient` reads on every request, so a request does not pay for a
 /// Keychain lookup.
@@ -16,6 +30,7 @@ final class AuthManager: ObservableObject {
     @Published private(set) var isLoggedIn: Bool = false
     @Published private(set) var currentUser: UserInfo?
 
+    private let keychainService = "com.gova.auth"
     private let keychainKey = "gova.auth.token"
     private let lock = NSLock()
     private var cachedToken: String?
@@ -30,6 +45,25 @@ final class AuthManager: ObservableObject {
         lock.lock()
         defer { lock.unlock() }
         return cachedToken
+    }
+
+    /// Validates a token restored from the Keychain and fills in `currentUser`.
+    /// Call once at launch.
+    ///
+    /// `init` can only say a token *exists*. Tokens last 30 days and
+    /// `logout_all` retires them early, so a restored one may already be dead —
+    /// and without this check the app renders signed-in screens whose every
+    /// request 401s. A 401 here logs out through `APIClient`'s handler; a
+    /// network failure deliberately does not, so a launch offline keeps the
+    /// session.
+    @MainActor
+    func restoreSession() async {
+        guard token != nil else { return }
+        do {
+            currentUser = try await APIClient.shared.get(path: "/api/v1/auth/me_token")
+        } catch {
+            // A dead token has already been cleared by APIClient's 401 handler.
+        }
     }
 
     @MainActor
@@ -59,13 +93,19 @@ final class AuthManager: ObservableObject {
 
     // MARK: - Keychain
 
-    private func readTokenFromKeychain() -> String? {
-        let query: [String: Any] = [
+    private func baseQuery() -> [String: Any] {
+        [
             kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
             kSecAttrAccount as String: keychainKey,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
+    }
+
+    private func readTokenFromKeychain() -> String? {
+        var query = baseQuery()
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
         var result: AnyObject?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
               let data = result as? Data
@@ -74,20 +114,22 @@ final class AuthManager: ObservableObject {
     }
 
     private func saveTokenToKeychain(_ token: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: keychainKey,
-            kSecValueData as String: Data(token.utf8),
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-        ]
-        SecItemAdd(query as CFDictionary, nil)
+        var query = baseQuery()
+        query[kSecValueData as String] = Data(token.utf8)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            // The in-memory token still works for this launch; only persistence
+            // failed, so the next launch lands on the login screen.
+            print("AuthManager: could not persist the token to the Keychain (OSStatus \(status))")
+        }
     }
 
     private func deleteTokenFromKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: keychainKey,
-        ]
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(baseQuery() as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            print("AuthManager: could not remove the token from the Keychain (OSStatus \(status))")
+        }
     }
 }

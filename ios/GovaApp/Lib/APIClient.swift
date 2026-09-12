@@ -16,9 +16,40 @@ enum APIError: LocalizedError {
     }
 }
 
+/// Thrown inside `.decode` when a response the caller asked to decode carried no
+/// `data`. The server omits `data` entirely for an empty payload (`jsonOK(w,
+/// nil)` → `{"ok":true}`), which is legal — it means the caller should have used
+/// a discarding overload.
+struct MissingPayload: LocalizedError {
+    let path: String
+    var errorDescription: String? {
+        "\(path) answered with no data — call the discarding overload for this endpoint."
+    }
+}
+
+/// `meta` from a list response. See docs/API-CONTRACT.md § Pagination.
+struct PageMeta: Decodable {
+    let limit: Int
+    let offset: Int
+    let total: Int
+}
+
+/// One window of a list endpoint: the rows, plus the `meta` that says whether
+/// more exist.
+struct Page<Item: Decodable> {
+    let items: [Item]
+    let meta: PageMeta?
+
+    /// True when the server holds rows past this window.
+    var hasMore: Bool {
+        guard let meta else { return false }
+        return meta.offset + items.count < meta.total
+    }
+}
+
 /// Talks to the GOVA JSON API. Every response is wrapped in
-/// `{"ok":bool,"data":...,"error":"..."}` — see docs/API-CONTRACT.md in the
-/// gova-monolith repo. The `T` these methods decode is the payload inside
+/// `{"ok":bool,"data":...,"meta":...,"error":"..."}` — see docs/API-CONTRACT.md
+/// in the gova-monolith repo. The `T` these methods decode is the payload inside
 /// `data`, never the envelope itself.
 final class APIClient {
     static let shared = APIClient()
@@ -27,6 +58,7 @@ final class APIClient {
     private let configError: String?
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -35,6 +67,12 @@ final class APIClient {
         // The API emits RFC3339 with second precision and no fractional part,
         // precisely so this strategy works.
         decoder.dateDecodingStrategy = .iso8601
+
+        encoder = JSONEncoder()
+        // The mirror image: models.Time on the server parses strict RFC3339 with
+        // seconds and a zone. Without this a Date in a request body encodes as a
+        // seconds-since-2001 number and the server answers 400.
+        encoder.dateEncodingStrategy = .iso8601
 
         guard
             let configURL = Bundle.main.url(forResource: "Config", withExtension: "plist"),
@@ -54,17 +92,60 @@ final class APIClient {
         configError = nil
     }
 
+    // MARK: - GET
+
     func get<T: Decodable>(path: String) async throws -> T {
         try await send(path: path, method: "GET")
     }
+
+    /// Fetches one window of a list endpoint, keeping the `meta` that `get`
+    /// discards. Lists default to 50 rows, so a list that can grow past that
+    /// must page: pass `?limit=&offset=` and append while `hasMore`.
+    func getPage<Item: Decodable>(path: String) async throws -> Page<Item> {
+        let data = try await sendForData(path: path, method: "GET", body: Optional<Never>.none)
+        do {
+            let envelope = try decoder.decode(ListEnvelope<Item>.self, from: data)
+            return Page(items: envelope.data ?? [], meta: envelope.meta)
+        } catch {
+            throw APIError.decode(error)
+        }
+    }
+
+    // MARK: - POST
 
     func post<T: Decodable>(path: String, body: some Encodable) async throws -> T {
         try await send(path: path, method: "POST", body: body)
     }
 
+    /// Posts and discards the response payload — for an endpoint whose response
+    /// is `empty`, or a scaffolded `gova handler` that still answers `{"ok":true}`.
+    func post(path: String, body: some Encodable) async throws {
+        _ = try await sendForData(path: path, method: "POST", body: body)
+    }
+
+    /// Posts with no request body, decoding the response.
+    func post<T: Decodable>(path: String) async throws -> T {
+        try await send(path: path, method: "POST")
+    }
+
+    /// Posts with no request body, discarding the response — the shape a
+    /// `control: button` custom endpoint usually takes.
+    func post(path: String) async throws {
+        _ = try await sendForData(path: path, method: "POST", body: Optional<Never>.none)
+    }
+
+    // MARK: - PUT
+
     func put<T: Decodable>(path: String, body: some Encodable) async throws -> T {
         try await send(path: path, method: "PUT", body: body)
     }
+
+    /// Puts and discards the response payload.
+    func put(path: String, body: some Encodable) async throws {
+        _ = try await sendForData(path: path, method: "PUT", body: body)
+    }
+
+    // MARK: - DELETE
 
     /// Deletes and decodes the response payload, for an endpoint that returns one.
     func delete<T: Decodable>(path: String) async throws -> T {
@@ -83,7 +164,10 @@ final class APIClient {
     ) async throws -> T {
         let data = try await sendForData(path: path, method: method, body: body)
         do {
-            return try decoder.decode(Envelope<T>.self, from: data).data
+            guard let payload = try decoder.decode(Envelope<T>.self, from: data).data else {
+                throw MissingPayload(path: path)
+            }
+            return payload
         } catch {
             throw APIError.decode(error)
         }
@@ -120,7 +204,7 @@ final class APIClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         if let body {
-            request.httpBody = try JSONEncoder().encode(body)
+            request.httpBody = try encoder.encode(body)
         }
         return request
     }
@@ -130,6 +214,13 @@ final class APIClient {
             throw APIError.network(URLError(.badServerResponse))
         }
         guard (200...299).contains(http.statusCode) else {
+            // A 401 while holding a token means that token is dead — bearer
+            // tokens expire after 30 days, and logout_all retires them early.
+            // Without this the app keeps rendering signed-in screens whose every
+            // request fails, and the isLoggedIn gate never returns to login.
+            if http.statusCode == 401, AuthManager.shared.token != nil {
+                Task { @MainActor in AuthManager.shared.logout() }
+            }
             let message = (try? JSONDecoder().decode(ServerError.self, from: data))?.error
                 ?? "Server error \(http.statusCode)"
             throw APIError.server(statusCode: http.statusCode, message: message)
@@ -138,4 +229,12 @@ final class APIClient {
 }
 
 private struct ServerError: Decodable { let error: String }
-private struct Envelope<T: Decodable>: Decodable { let ok: Bool; let data: T }
+
+// `data` is optional because the server omits it for an empty payload; the
+// decoding paths turn a missing payload into a named error.
+private struct Envelope<T: Decodable>: Decodable { let ok: Bool; let data: T? }
+private struct ListEnvelope<Item: Decodable>: Decodable {
+    let ok: Bool
+    let data: [Item]?
+    let meta: PageMeta?
+}
