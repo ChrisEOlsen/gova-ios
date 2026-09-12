@@ -60,8 +60,8 @@ final class APIClient {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    init(session: URLSession = .shared) {
-        self.session = session
+    init(session: URLSession? = nil) {
+        self.session = session ?? Self.makeCookielessSession()
 
         decoder = JSONDecoder()
         // The API emits RFC3339 with second precision and no fractional part,
@@ -90,6 +90,55 @@ final class APIClient {
         }
         baseURL = url
         configError = nil
+    }
+
+    /// A session that can neither store nor send cookies.
+    ///
+    /// This is load-bearing, not hygiene. The server's CSRF middleware exempts
+    /// bearer requests, and `login_token` is by definition the one call that has
+    /// no bearer token yet — so its exemption rests entirely on the premise that
+    /// "a native client holds no cookies at all" (gova-monolith
+    /// middleware/csrf.go). `URLSession.shared` breaks that premise: the launch
+    /// `GET /api/v1/_version` is a safe method, so the server mints a
+    /// `csrf_token` cookie, the shared jar stores it, and the next login POST
+    /// replays it. The server then sees a cookie-carrying unsafe request with no
+    /// `X-CSRF-Token` and answers 403 — every login, on every fresh install.
+    /// gova-monolith's own csrf_test.go pins that 403.
+    ///
+    /// Registering makes it worse: `register` sets a `gova_session` cookie, and
+    /// `middleware.Auth` resolves cookies before bearer tokens, so the app would
+    /// silently authenticate by ambient cookie instead of by the token this whole
+    /// template is built on.
+    private static func makeCookielessSession() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieAcceptPolicy = .never
+        config.httpShouldSetCookies = false
+        config.httpCookieStorage = nil
+        return URLSession(configuration: config)
+    }
+
+    /// Builds a path with a properly percent-encoded query string.
+    ///
+    /// Interpolating values into a query (`"?filter=name:\(text)"`) is fine for
+    /// the generated int-keyed cases and silently corrupts the URL for anything
+    /// else — an email's `+`, a space, an `&` in free text. Use this instead.
+    ///
+    ///     APIClient.path("/api/v1/notes", query: [
+    ///         .init(name: "filter", value: "author:\(email)"),
+    ///         .init(name: "limit", value: "50"),
+    ///     ])
+    static func path(_ base: String, query: [URLQueryItem]) -> String {
+        guard !query.isEmpty else { return base }
+        var components = URLComponents()
+        components.path = base
+        components.queryItems = query
+        // URLComponents leaves a literal `+` as-is, and Go's net/url decodes `+`
+        // in a query as a space — so `a+b@example.com` would reach a handler as
+        // `a b@example.com`. Spaces are already `%20` here, never `+`, so every
+        // remaining `+` is a literal that has to be escaped.
+        components.percentEncodedQuery = components.percentEncodedQuery?
+            .replacingOccurrences(of: "+", with: "%2B")
+        return components.string ?? base
     }
 
     // MARK: - GET

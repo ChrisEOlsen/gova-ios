@@ -65,6 +65,13 @@ Consequences you will hit constantly:
 - A `401` means the bearer token is dead. `APIClient` logs out on it
   automatically, which returns the app to `LoginView`; a ViewModel does not
   need to handle it beyond showing its error.
+- **The client holds no cookies, by construction.** `APIClient`'s session is
+  ephemeral with cookies refused. This is load-bearing: the server's CSRF
+  exemption is for *bearer* requests, and `login_token` is the one call with no
+  bearer token yet, so its exemption rests entirely on a native client having no
+  cookies to replay. Accept one — `URLSession.shared` would, from the launch
+  `_version` call — and every login answers `403 invalid CSRF token`. Never
+  swap in `URLSession.shared` or a session with a cookie jar.
 
 Auth is always present — the monolith ships it. The bearer endpoints
 (`login_token`, `logout_token`, `me_token`) always exist; there is nothing to
@@ -94,6 +101,37 @@ canLoadMore = page.hasMore
 
 and the list shows a "Load more" row while `canLoadMore`. A list screen that
 silently stops at 50 rows is a defect, not a simplification.
+
+### Query strings
+
+Interpolating a value into a query is fine for the generated shapes, whose
+values are all `Int` — `?filter=client_id:\(parentId)`, `?offset=\(items.count)`.
+It breaks the moment a value is text: an email's `+`, a space, an `&` in a free
+text search. Any query carrying a non-`Int` value is built with
+`APIClient.path`:
+
+```swift
+let path = APIClient.path("/api/v1/notes", query: [
+    .init(name: "filter", value: "author:\(email)"),
+    .init(name: "limit", value: "50"),
+])
+```
+
+### The launch sequence
+
+`GovaAppApp` runs `VersionGate.check()` and `AuthManager.restoreSession()`
+concurrently at launch, and `restoreSession` is what clears `auth.isRestoring`
+— so it runs on every launch, whatever else changes.
+
+`ContentView` gates in this order, and it is not interchangeable:
+
+1. `auth.isRestoring` → a `ProgressView`. A Keychain token proves only that one
+   was saved once.
+2. `auth.isLoggedIn == false` → `LoginView`.
+3. otherwise → the app.
+
+Checking `isLoggedIn` first renders the app on an unvalidated token: a flash of
+screens, a burst of 401s, then the login screen anyway.
 
 ## Translation guide
 
@@ -249,7 +287,9 @@ import and use them.
 
 - **`APIClient.swift`** — `shared`, reads `API_BASE_URL` from `Config.plist`,
   injects `Authorization: Bearer` when `AuthManager` holds a token, unwraps the
-  envelope, and encodes/decodes dates as RFC3339. Throws `APIError`:
+  envelope, encodes/decodes dates as RFC3339, and runs on a **cookieless**
+  ephemeral session (see the wire contract above). `APIClient.path(_:query:)`
+  builds an encoded query string. Throws `APIError`:
   `.configuration`, `.network`, `.decode`, `.server(statusCode:message:)`, and
   logs out on a `401` carrying a token.
   - `get` / `getPage` — the latter keeps `meta`, returning `Page<Item>`
@@ -260,9 +300,9 @@ import and use them.
     own line discards and `let x: T = try await client.post(path: p)` decodes.
 - **`AuthManager.swift`** — `shared`, `ObservableObject`, `isLoggedIn`,
   `currentUser`, `nonisolated var token` (in-memory, Keychain-backed),
-  `login(token:user:)`, `logout()`, and `restoreSession()` — called once at
-  launch from `GovaAppApp`, it validates a Keychain token against `me_token`
-  and fills `currentUser`. Defines `UserInfo`, `LoginResponse` and
+  `login(token:user:)`, `logout()`, `isRestoring`, and `restoreSession()` —
+  called once at launch from `GovaAppApp`, it validates a Keychain token
+  against `me_token`, fills `currentUser`, and clears `isRestoring`. Defines `UserInfo`, `LoginResponse` and
   `LoginRequest`; a login screen uses those three rather than declaring its own.
 - **`VersionGate.swift`** — checks `GET /api/v1/_version` at launch against this
   build's `CFBundleShortVersionString`. **Fails open**: only a provably-too-old
