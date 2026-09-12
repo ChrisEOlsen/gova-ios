@@ -30,6 +30,19 @@ killall -9 com.apple.CoreSimulator.CoreSimulatorService && xcrun simctl erase al
 
 `scripts/verify` now prints that itself when it sees the phrase in the log.
 
+## Auth has now been proven, but not against the real server
+
+The verified build above exercised **zero** auth: the placeholder app makes no
+auth calls, VersionGate fails open, and restoreSession no-ops without a token.
+That is how a deterministic login failure survived a green test run — the shared
+URLSession cookie jar stored the `csrf_token` the launch `_version` GET mints
+and replayed it on `login_token`, which the server answers 403.
+
+That is fixed and proven against a stand-in server implementing the same CSRF
+rule: `URLSession.shared` → 403, the cookieless session → 200. What has still
+never happened is a real login against a running gova-monolith. The first
+`/build` against a live server is that test.
+
 ## Still unexercised: the smoke test's main path
 
 `SmokeTest` passed through its **degraded** branch. `ContentView` is still the
@@ -39,6 +52,13 @@ row-tap-pushes-a-detail check have never run against a real app.
 
 They get their first exercise on the first `/build` of an app with screens.
 Read that run's output rather than trusting the green tick here.
+
+## Confirmed along the way
+
+`Config.plist` is copied into the app bundle root by xcodegen's resource
+inference (`GovaApp.app/Config.plist`, holding `API_BASE_URL`), so
+`Bundle.main.url(forResource:withExtension:)` finds it. That was previously
+assumed.
 
 ## Confirm LAN http on a physical device
 

@@ -55,8 +55,10 @@ Batches of one are always valid.
      printed path
    - Critical/Important findings → fix subagent → re-review
    - Clean → mark complete in the todos and the ledger
-3. Final whole-branch review against the commit the branch started from — the
-   `code-review` skill.
+3. Final whole-branch review against the commit the branch started from. Use
+   the bundled `code-review` skill if this harness has it; otherwise dispatch
+   one reviewer over the whole-branch diff with the task-reviewer prompt,
+   scoped to the branch rather than to one task.
 4. Findings from that → ONE fix subagent with the complete list.
 
 ## Pre-flight

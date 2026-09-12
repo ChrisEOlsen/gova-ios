@@ -72,9 +72,9 @@ Beyond that, size tasks by your own read of the work. There is no line count and
 
 **Each step is one action (2-5 minutes):**
 - "Write the model struct" - step
-- "Verify the generated files" - step
-- "Customize the generated handler/JS" - step
-- "Restart the container and check logs" - step
+- "Write the ViewModel's load method" - step
+- "Add the create sheet to the list view" - step
+- "Run scripts/verify" - step
 - "Commit" - step
 
 ## Plan Document Header
