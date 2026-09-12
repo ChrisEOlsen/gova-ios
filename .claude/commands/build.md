@@ -30,18 +30,27 @@ alphanumeric only ("Task Manager" → `taskmanager`). In `ios/project.yml` set:
 Leave the top-level `name:`, the target names, and the scheme alone — they are
 internal to this repo's tooling. Run `xcodegen generate` after editing.
 
-## 3. Brainstorm
+## 3. Branch
+
+`git checkout -b build/<app-name>` in the main checkout. No worktrees.
+
+This happens **before** brainstorming, not after planning: the Standard path
+commits a spec document to `docs/specs/` during step 4, and
+`gova-build-execution` refuses to start on `main`. A branch that already exists
+is fine — check it out and continue.
+
+## 4. Brainstorm
 
 Use the `gova-brainstorm` skill with `SEED.md` as input. Design every screen the
 Generated Context authorizes — building a subset and calling it done is the
 failure mode here. Wait for approval before continuing.
 
-## 4. Plan
+## 5. Plan
 
 Use the `gova-writing-plans` skill.
 
 **Screens come from endpoint kinds, never from a flat model list.** Read the
-Generated Context and follow `CLAUDE.md` § Step 4:
+Generated Context and follow `CLAUDE.md` § Step 3:
 
 - **Top-level screens:** one per name on the `Top-level list screens` line.
   Child resources are deliberately absent from it.
@@ -57,10 +66,6 @@ Generated Context and follow `CLAUDE.md` § Step 4:
 
 Task order: models → auth screens (if required) → per resource, ViewModel then
 View(s) → navigation wiring in `ContentView.swift`.
-
-## 5. Branch
-
-`git checkout -b build/<app-name>` in the main checkout. No worktrees.
 
 ## 6. Implement
 
@@ -80,9 +85,11 @@ bearer endpoints already exist.
 then state the result:
 
 ```bash
-cd ios && xcodebuild -scheme GovaApp -sdk iphonesimulator \
-  -destination 'platform=iOS Simulator,name=iPhone 16' test 2>&1 | tail -20
+.claude/skills/gova-build-execution/scripts/verify
 ```
+
+(It resolves an installed simulator itself. Do not hand-write an `xcodebuild`
+line naming a specific device — the machine may not have it.)
 
 - **Build and tests pass** — including the UI smoke test and the per-resource
   detail assertions.

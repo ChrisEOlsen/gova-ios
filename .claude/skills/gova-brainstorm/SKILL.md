@@ -39,7 +39,7 @@ You MUST create a task for each of these items and complete them in order. Items
 3. **Ask clarifying questions** — batched, not serial (see below); understand purpose/constraints/success criteria
 4. **[Standard+] Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval
-6. **[Standard+] Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit
+6. **[Standard+] Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit. Check `git branch --show-current` first: this commit belongs on the `build/<app-name>` branch `/build` creates in its step 3, never on `main`. If you are on `main` because this skill was invoked directly, create the branch before committing.
 7. **[Standard+] Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **[Standard+] User reviews written spec** — ask user to review the spec file before proceeding
 9. **Transition to implementation** — invoke the `gova-writing-plans` skill to create an implementation plan
@@ -78,7 +78,7 @@ You MUST create a task for each of these items and complete them in order. Items
 
 - Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood independently
 - For each model/page, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Map each resource to the screens its endpoint kinds authorize (see `CLAUDE.md` § Step 4's kind→screen table). **Never design an operation the manifest does not expose** — a resource with no `update` endpoint gets no edit form.
+- Map each resource to the screens its endpoint kinds authorize (see `CLAUDE.md` § Step 3's kind→screen table). **Never design an operation the manifest does not expose** — a resource with no `update` endpoint gets no edit form.
 
 **Working in existing codebases:**
 

@@ -2,8 +2,7 @@
 
 ```
 Subagent:
-  Claude Code — subagent_type: general-purpose, plus an explicit `model`
-  opencode    — subagent_type: gova-implementer (model comes from its agent file)
+  subagent_type: general-purpose, plus an explicit `model`
   description: "Implement Task N: [task name]"
   model: [REQUIRED per SKILL.md § Model Selection — an omitted model silently
          inherits the session's most expensive one]

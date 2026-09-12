@@ -33,7 +33,7 @@ A customization step is well-specified when a competent implementer with the tas
 
 **Announce at start:** "I'm using the gova-writing-plans skill to create the implementation plan."
 
-**Context:** The feature branch should already exist (created via `/build` Step 4 — `git checkout -b build/<app-name>` in the main checkout, no worktree).
+**Context:** The feature branch should already exist (created via `/build` Step 3, before brainstorming — `git checkout -b build/<app-name>` in the main checkout, no worktree). If HEAD is still `main`, create it now rather than planning onto `main`.
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
 
@@ -54,7 +54,7 @@ Before defining tasks, map out which files will be created or modified and what 
 
 - Design units with clear boundaries: model files, handler files, JS modules, one per feature.
 - Files that change together should live together. Split by feature, not by technical layer.
-- In existing codebases, follow established patterns (`inspect_app`). If a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+- In existing codebases, follow established patterns — read what is already in `ios/GovaApp/Views/` and `ios/GovaApp/ViewModels/`. If a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
 This structure informs how you split the work into tasks. Each task should produce self-contained changes that make sense independently.
 
@@ -97,9 +97,12 @@ Beyond that, size tasks by your own read of the work. There is no line count and
 [The project-wide requirements — auth required?, external integrations,
 naming and copy rules — one line each, with exact values copied verbatim from
 the spec (or, on the Small path, from the approved design in the conversation).
-Every task's requirements implicitly include this section, plus the Critical
-Constraints in CLAUDE.md (no raw SQL in handlers, no innerHTML with user data,
-no screen an endpoint kind does not authorize).]
+Every task's requirements implicitly include this section, plus
+CLAUDE.md § Architecture rules (MVVM, `APIClient.shared` only, Keychain only,
+no force unwrap, `@MainActor` ViewModels, async/await, `NavigationStack`, a
+visible error state per API call, `Config.plist` for the base URL, `xcodegen
+generate` after adding a file) and the rule that no screen may exist that an
+endpoint kind does not authorize.]
 
 ---
 ```

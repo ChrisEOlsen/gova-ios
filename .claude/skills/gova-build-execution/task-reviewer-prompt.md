@@ -5,8 +5,7 @@ code quality.
 
 ```
 Subagent:
-  Claude Code — subagent_type: general-purpose, plus an explicit `model`
-  opencode    — subagent_type: gova-reviewer (model comes from its agent file)
+  subagent_type: general-purpose, plus an explicit `model`
   description: "Review Task N (spec + quality)"
   model: [REQUIRED per SKILL.md § Model Selection]
   prompt: |
