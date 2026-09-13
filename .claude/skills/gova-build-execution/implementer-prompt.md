@@ -3,6 +3,9 @@
 ```
 Subagent:
   subagent_type: general-purpose, plus an explicit `model`
+                 (Codex: spawn_agent agent_type `worker`, explicit `model`, and
+                 `fork_turns` set to "none" or a turn count — naming a model
+                 rules out the default full-history fork)
   description: "Implement Task N: [task name]"
   model: [REQUIRED per SKILL.md § Model Selection — an omitted model silently
          inherits the session's most expensive one]

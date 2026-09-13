@@ -6,6 +6,9 @@ code quality.
 ```
 Subagent:
   subagent_type: general-purpose, plus an explicit `model`
+                 (Codex: spawn_agent agent_type `explorer` — it reads and does
+                 not write — with an explicit `model` and `fork_turns` set to
+                 "none" or a turn count)
   description: "Review Task N (spec + quality)"
   model: [REQUIRED per SKILL.md § Model Selection]
   prompt: |

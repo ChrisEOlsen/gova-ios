@@ -50,7 +50,9 @@ something already filled in with a real (non-placeholder) value; show it and ask
 for confirmation.
 
 Ask for all five in **one** `AskUserQuestion` call where the answers are selectable,
-otherwise ask in plain text. Keep it to a single round-trip if possible.
+otherwise ask in plain text. Under Codex there is no such tool: ask all five as one
+numbered list in a single message, each with its options. Keep it to a single
+round-trip if possible.
 
 **1. App Name** — free text. Used as the home-screen name and to derive the bundle ID
 (`com.gova.{lowercased-alphanumeric}`) in Step 2 of `/build`. Must be unique per app.

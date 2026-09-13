@@ -33,10 +33,12 @@ Reading your output is work. Make it cheap.
 
 ## Setup
 
-Run `./install-claude.sh` once per clone — it sets `Config.plist`'s
-`API_BASE_URL` and generates the Xcode project. Then `/prep` collects the app
-name, gova-monolith path, API base URL and design notes, writes them into
-`SEED.md`, and runs the export. Then `/build`.
+Run `./install-claude.sh` once per clone, or `./install-codex.sh` if you work
+in Codex — either sets `Config.plist`'s `API_BASE_URL` and generates the Xcode
+project. Then `/prep` collects the app name, gova-monolith path, API base URL
+and design notes, writes them into `SEED.md`, and runs the export. Then
+`/build`. Under Codex those two are skills rather than slash commands:
+`gova-prep` and `gova-build`. See **Harnesses** at the end.
 
 ## The wire contract
 
@@ -339,3 +341,43 @@ grep can see.
   `/launch` https tunnel.
 - **Signing:** `/prep` writes `DEVELOPMENT_TEAM` into `project.yml` so it
   survives `xcodegen generate`. Blank is fine for the simulator.
+
+---
+
+## Harnesses
+
+This project runs under **Claude Code** and **Codex**, with the same workflow,
+because everything defining it lives in files both read:
+
+| What | Where | How each finds it |
+|---|---|---|
+| These rules | `CLAUDE.md` | Claude Code directly; Codex via the `AGENTS.md` symlink |
+| `/prep`, `/build`, `/export:mobile` | `.claude/commands/` | Claude Code reads the dir; `.agents/skills/gova-{prep,build,export-mobile}/SKILL.md` point Codex at it |
+| The three `gova-*` skills | `.claude/skills/` | Claude Code reads the dir; `.agents/skills/*` symlink into it for Codex |
+
+Install with `./install-claude.sh`, `./install-codex.sh`, or both.
+**Nothing above is duplicated per harness. Do not fork it.**
+
+The three `gova-{prep,build,export-mobile}` skills hold a pointer, not a copy:
+Codex follows a symlinked skill *directory* but ignores a symlinked `SKILL.md`
+*file*, and a command is one file, so there is nothing to link a directory to.
+They say which file to read and stop.
+
+Four differences:
+
+1. **Batched questions** — `AskUserQuestion` (Claude Code). Codex has no
+   equivalent, so ask a batch as one numbered list in a single message. Never
+   one question per message in either.
+2. **Subagent dispatch** — Claude Code takes `subagent_type: general-purpose`
+   plus an explicit `model`. Codex takes `spawn_agent` with `agent_type`
+   `worker` (implement, fix) or `explorer` (review), an explicit `model`, and
+   `fork_turns` set to `"none"` or a turn count — a full-history fork inherits
+   the parent's model and refuses the override. This repo pins no custom agents.
+3. **Final review** — the `code-review` skill (Claude Code) or `/review`
+   (Codex).
+4. **Project trust** — Codex ignores `.codex/` entirely until the project is
+   trusted. `install-codex.sh` writes that entry; without it the concurrency
+   setting silently does not apply.
+
+Codex loads its configuration at startup. Restart it after touching `.agents/`,
+`.codex/` or `AGENTS.md`.

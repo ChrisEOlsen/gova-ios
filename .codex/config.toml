@@ -1,0 +1,14 @@
+# Project scoped Codex configuration.
+#
+# Codex loads a project `.codex/` layer only for a project you have trusted.
+# `install-codex.sh` writes that trust entry into ~/.codex/config.toml; until it
+# runs, or until you answer yes to Codex's own trust prompt, this file is inert.
+#
+# This repo pins no custom agents and no MCP servers. Builds dispatch the
+# built-in `worker` and `explorer` agents with an explicit model, which is what
+# `gova-build-execution` § Model Selection asks for.
+
+[agents]
+# gova-build-execution runs at most 3 implementers in a batch, then reviews them
+# in parallel. Six covers the widest point of that loop.
+max_concurrent_threads_per_session = 6

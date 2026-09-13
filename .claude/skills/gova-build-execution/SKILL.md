@@ -78,7 +78,9 @@ Use the least powerful model that can do the job.
 - **Architecture, and the final whole-branch review**: the most capable model.
 
 **Always name the model explicitly** — an omitted one inherits your session's,
-usually the most expensive. Turn count beats token price: the cheapest models
+usually the most expensive. Under Codex, a named model also means `fork_turns`
+must be `"none"` or a turn count: a full-history fork inherits the parent's model
+and refuses the override. Turn count beats token price: the cheapest models
 take 2–3× the turns on multi-step Swift and cost more overall. Mid-tier is the
 floor for reviewers and for any task that writes a View plus its ViewModel.
 

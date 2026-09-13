@@ -23,6 +23,7 @@ You need Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
 ```bash
 ./install-claude.sh          # sets the API URL, generates the Xcode project
+# or ./install-codex.sh      # same, for OpenAI Codex
 ```
 
 Then:
@@ -33,6 +34,9 @@ Then:
 3. Open `ios/GovaApp.xcodeproj` and run
 
 Re-run `/export:mobile` any time the web app's API changes.
+
+Under Codex those three are skills rather than slash commands: say "use
+gova-prep", or pick it from `/skills`.
 
 ## What's already written
 

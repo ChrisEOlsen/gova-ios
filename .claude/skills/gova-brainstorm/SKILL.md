@@ -20,7 +20,7 @@ much of the app you build — **build every screen the manifest authorizes, in o
 pass.** How to break that into tasks is your judgement, not a rubric's.
 
 **Small** — one screen, one model, a navigation fix, or a change confined to existing code.
-→ **Skip the spec document.** Use plan mode for the dialogue (Claude Code's plan mode, or opencode's `plan` agent) — it is harness-enforced read-only, so the HARD-GATE holds mechanically rather than on your promise. Batch your questions, get the approach approved, then invoke `gova-writing-plans` for a short plan. Do not write to `docs/specs/`.
+→ **Skip the spec document.** Use plan mode for the dialogue (Claude Code's plan mode, opencode's `plan` agent, or Codex's `/plan`) — it is harness-enforced read-only, so the HARD-GATE holds mechanically rather than on your promise. Batch your questions, get the approach approved, then invoke `gova-writing-plans` for a short plan. Do not write to `docs/specs/`.
 
 **Standard** — anything else: a resource with its own list, detail and forms;
 several screens that interact; a whole app from a fresh Generated Context.
@@ -54,7 +54,7 @@ You MUST create a task for each of these items and complete them in order. Items
 - A Generated Context with many resources is not a reason to build fewer of
   them. Design them all. If it is genuinely enormous, say so and ask the
   developer what to cut — do not decide unilaterally to deliver a fraction.
-- Ask questions in **batches**, not one per message. Use the harness's batched-question tool (`AskUserQuestion` in Claude Code, `question` in opencode) — it takes several questions per call, each with a few options and optional multi-select. One call that resolves four decisions beats four calls that resolve one each; serial questioning is pure latency and is the single largest avoidable cost in this phase.
+- Ask questions in **batches**, not one per message. Use the harness's batched-question tool (`AskUserQuestion` in Claude Code, `question` in opencode) — it takes several questions per call, each with a few options and optional multi-select. Codex has no such tool: ask the batch as one numbered list in a single message, each question with its options, and wait for the whole set. One call that resolves four decisions beats four calls that resolve one each; serial questioning is pure latency and is the single largest avoidable cost in this phase.
 - Group a batch by theme so the answers are independently meaningful — data model in one batch, auth and integrations in the next. Do not batch a question whose options depend on the answer to another question in the same batch; that one waits for the following round.
 - Prefer multiple choice when possible, but open-ended is fine — put it in the same batch as a plain question.
 - Two batches is a normal budget for a Standard project, one for a Small one. If you are reaching for a third, you are designing by interview instead of proposing something concrete and letting the user correct it.
@@ -120,7 +120,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 ## Key Principles
 
 - **Scale the paperwork to the change, never the scope** - build all of what was asked
-- **Batch questions** - `AskUserQuestion` (Claude Code) or `question` (opencode), several at a time; never one question per message
+- **Batch questions** - `AskUserQuestion` (Claude Code) or `question` (opencode), several at a time; under Codex one numbered list in one message. Never one question per message
 - **Multiple choice preferred** - Easier to answer than open-ended when possible
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
 - **Explore alternatives** - Propose 2-3 approaches on Standard+ before settling
