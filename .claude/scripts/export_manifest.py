@@ -36,10 +36,19 @@ def pascal(name: str) -> str:
 
 
 def _field_desc(f: dict) -> str:
-    """Compact one-field descriptor for a schema: name plus its ref or format."""
+    """Compact one-field descriptor for a schema: name plus its ref, scope or
+    format.
+
+    A scope is called out even inside a request body, because that is exactly
+    where it misleads: the column appears in the body the manifest declares, and
+    the server overwrites it from the session anyway. A form field for it lets
+    somebody type a value that is then discarded.
+    """
     s = f["name"]
     if f.get("references"):
         s += f"->{f['references']}"
+    elif f.get("scope"):
+        s += f"[scope:{f['scope']}, server set]"
     elif f.get("format"):
         s += f":{f['format']}"
     return s
@@ -153,6 +162,8 @@ def render_context(manifest: dict) -> str:
                 extra += f"  [format: {f['format']}]"
             if f.get("references"):
                 extra += f"  [ref → {f['references']}]"
+            if f.get("scope"):
+                extra += f"  [scope → {f['scope']}, server set]"
             try:
                 st = swift_type(f["type"], f.get("nullable", False))
             except ValueError as exc:
@@ -186,20 +197,32 @@ def render_context(manifest: dict) -> str:
     lines.append("")
     lines.extend(_auth_notes(kinds))
 
-    # Relationships: any field with a `references` makes its model a child.
+    # Relationships: any field with a `references` makes its model a child. Being
+    # a child decides where a list may ALSO appear — never whether the model
+    # deserves a screen of its own. See "Screens to generate" below.
     rels = sorted(
         (m["name"], f["references"], f["name"])
         for m in models
         for f in m.get("fields", [])
         if f.get("references")
     )
-    child_models = sorted({child for child, _parent, _fk in rels})
+    # A scope column is not a relationship. It names whose rows these are, the
+    # server sets it, and nesting on it produces a screen under a parent that
+    # often has no screen at all.
+    scopes = sorted(
+        (m["name"], f["scope"], f["name"])
+        for m in models
+        for f in m.get("fields", [])
+        if f.get("scope")
+    )
 
     lines.append("#### Relationships")
+    for model, target, col in scopes:
+        lines.append(f"  - `{model}.{col}` scopes rows to `{target}` — the server sets it from the session. Never nest on it, and never put it in a create or update form: a value typed there is discarded.")
     if rels:
         for child, parent, fk in rels:
-            lines.append(f"  - `{child}` is a child of `{parent}` (via `{fk}`) — nest its list under `{parent}` detail, filtered by `{fk}`")
-    else:
+            lines.append(f"  - `{child}` is a child of `{parent}` (via `{fk}`) — its list may ALSO render inside `{parent}` detail, filtered by `{fk}`. It still gets its own top-level screen.")
+    elif not scopes:
         lines.append("  - (none)")
     lines.append("")
 
@@ -216,11 +239,15 @@ def render_context(manifest: dict) -> str:
         lines.append("  - (none)")
     lines.append("")
 
-    top_level = [name for name in list_models if name not in child_models]
+    # Every model with a list endpoint gets a screen. Being somebody's child is
+    # not a reason to hide one: a set log references the lift it was performed
+    # on, and it is still the app. Suppressing children left one real app with a
+    # lookup table as its only tab, its actual screens buried two taps down.
+    top_level = list(list_models)
     lines.append("#### Screens to generate")
-    lines.append(f"  - Top-level list screens (list endpoint, not a child): [{', '.join(top_level)}]")
+    lines.append(f"  - Top-level list screens (every model with a list endpoint): [{', '.join(top_level)}]")
     for child, parent, fk in rels:
-        lines.append(f"  - Nested: `{child}` list under `{parent}` detail, filtered by `{fk}`")
+        lines.append(f"  - Optionally also nested: `{child}` list inside `{parent}` detail, filtered by `{fk}`")
     for e in custom:
         attach = "detail" if "{id}" in e["path"] else "list"
         lines.append(f"  - Custom action: {e['method']} {e['path']} on {attach}")

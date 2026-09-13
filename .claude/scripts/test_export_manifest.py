@@ -143,7 +143,7 @@ class TestRenderContext(unittest.TestCase):
         self.assertIn("- GET /api/v1/auth/me_token  [mobile_me]", self.out)
 
     def test_screens_line(self):
-        self.assertIn("Top-level list screens (list endpoint, not a child): [log_category, order_item, project]", self.out)
+        self.assertIn("Top-level list screens (every model with a list endpoint): [log_category, order_item, project, reminder]", self.out)
         self.assertIn("Login screen: yes", self.out)
 
     def test_deterministic_regardless_of_input_order(self):
@@ -177,12 +177,14 @@ class TestEnrichedContract(unittest.TestCase):
         self.assertIn("POST /api/v1/reminders/{id}/snooze — Snooze a reminder by N minutes", self.out)
         self.assertIn("attach: detail  control: form", self.out)
 
-    def test_top_level_excludes_child(self):
-        # reminder is a child (has a ref) so it is NOT a top-level screen; log_category and project are.
-        self.assertIn("Top-level list screens (list endpoint, not a child): [log_category, order_item, project]", self.out)
+    def test_top_level_includes_children_too(self):
+        # reminder references log_category, and still earns its own screen. Being
+        # a child decides where a list may ALSO appear, not whether the model is
+        # worth a tab: suppressing children hid a real app behind a lookup table.
+        self.assertIn("Top-level list screens (every model with a list endpoint): [log_category, order_item, project, reminder]", self.out)
 
-    def test_nested_screen_listed(self):
-        self.assertIn("Nested: `reminder` list under `log_category` detail, filtered by `category_id`", self.out)
+    def test_nested_screen_listed_as_optional(self):
+        self.assertIn("Optionally also nested: `reminder` list inside `log_category` detail, filtered by `category_id`", self.out)
 
     def test_custom_not_in_auth_section(self):
         out = self.out
@@ -198,7 +200,7 @@ class TestEnrichedContract(unittest.TestCase):
 class TestRenderContextEmpty(unittest.TestCase):
     def test_empty_manifest(self):
         out = render_context({"api_version": "1.0.0", "models": [], "endpoints": []})
-        self.assertIn("Top-level list screens (list endpoint, not a child): []", out)
+        self.assertIn("Top-level list screens (every model with a list endpoint): []", out)
         self.assertIn("Login screen: yes", out)  # auth always ships with the web app
         self.assertIn("#### Relationships", out)
         self.assertIn("  - (none)", out)

@@ -213,11 +213,25 @@ Two controls the manifest cannot ask for, because no `format` carries them:
   encoder writes the RFC3339 the server parses; formatting it yourself is how
   you get a 400.
 
-**Children nest.** The **Relationships** section lists each child and its
-foreign key. A child gets **no top-level screen**: its list renders inside the
-parent's detail, loaded as `?filter={fk}:{parentId}`, and its create sheet
-pre-fills the fk. Only resources with no `references` field become tabs — the
-`Top-level list screens` line says which.
+**Children nest as well as, not instead of.** The **Relationships** section lists
+each child and its foreign key. A child's list may ALSO render inside the
+parent's detail, with its create sheet pre-filling the fk — but **every model
+with a list endpoint gets a top-level screen**, child or not. The
+`Top-level list screens` line names them all.
+
+Suppressing children used to cost an app its navigation. A set log references the
+lift it was performed on, so the log and the 1RM history both vanished into a
+lift catalogue that was the only tab left.
+
+**Before nesting with `?filter={fk}:{parentId}`, check the web app's API
+contract.** A list that scopes rows by session overwrites that filter slot on the
+server, so the nested list quietly shows the caller's own rows whichever parent
+was tapped.
+
+**A scope column is not a relationship.** A field shown as
+`[scope → x, server set]` names *whose* rows these are. Never nest on it, and
+never put it in a create or update form: the server sets it from the session and
+discards anything typed there.
 
 **Custom endpoints become actions.** Each `kind:custom` entry carries a
 `summary`, its schemas, and `attach` + `control` hints. `control: button` → a
